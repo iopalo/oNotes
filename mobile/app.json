@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "oNotes",
+    "slug": "onotes",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "onotes",
+    "platforms": ["android"],
+    "assetBundlePatterns": ["**/*"],
+    "android": {
+      "package": "com.example.onotes",
+      "permissions": []
+    }
+  }
+}
