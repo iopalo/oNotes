@@ -12,19 +12,21 @@ Aplicación para notas con recordatorios locales pensada para Android.
 - Dispositivo Android con la app **Expo Go** instalada, o un emulador Android configurado
 
 ## Ejecutar en Android (paso a paso)
-> Sugerido para PowerShell/cmd en Windows: escribe los comandos sin copiar el bloque con \`\`\`bash\`\`\` para evitar errores de comando no encontrado.
+> Consejos para PowerShell/cmd en Windows: escribe cada comando tal cual (sin copiar bloque con ```bash```). Si ves errores de "no se reconoce" o rutas duplicadas, verifica que estés en la carpeta correcta y que Node esté en el PATH.
 
 1. Entra a la carpeta móvil: `cd mobile`
-2. Instala dependencias (usa `npm config set legacy-peer-deps true` si aparece un error de peer deps): `npm install`
-   - Si aparece `No matching version found for @react-native-community/datetimepicker`, asegúrate de que el archivo `mobile/package.json` tenga la versión `7.7.2` y vuelve a correr `npm install`.
-3. Si el comando `expo` no existe, instala la CLI global `npm install -g expo-cli` **o** ejecuta todos los comandos con `npx expo ...`.
-4. Inicia el servidor de desarrollo (Metro):
-   - Con CLI global: `npm start`
-   - Con npx: `npx expo start`
-5. Conéctalo a tu Android:
-   - En un emulador: con Metro abierto, presiona `a` para lanzar la app en el emulador.
-   - En dispositivo físico: escanea el QR que muestra Metro con la app **Expo Go** (deben estar en la misma red Wi-Fi).
-6. Si la red bloquea conexiones locales, arranca en modo túnel: `npx expo start --tunnel` (o `npm start -- --tunnel`).
+2. (Opcional) Si usas Windows y tienes avisos de peer deps, ejecuta una sola vez: `npm config set legacy-peer-deps true`
+3. Instala dependencias del proyecto (instala Expo localmente en `node_modules`): `npm install`
+   - Si aparece `No matching version found for @react-native-community/datetimepicker`, cambia la versión en `mobile/package.json` a `7.7.1` (ya viene configurada) y repite `npm install`.
+4. Si `expo` no se reconoce, usa siempre el CLI local con `npx expo <comando>` (recomendado) o instala el CLI global: `npm install -g expo-cli`.
+5. Inicia el servidor Metro (elige una opción):
+   - Con scripts npm: `npm start`
+   - Con CLI local: `npx expo start`
+   - Con túnel (si tu red bloquea LAN): `npx expo start --tunnel`
+6. Abre la app en Android:
+   - Emulador (Android Studio): ten el emulador abierto y en la consola de Metro presiona `a`.
+   - Dispositivo físico: instala **Expo Go**, escanea el QR de Metro (mismo Wi-Fi) o usa el enlace que muestra la consola.
+7. Si cambiaste de carpeta accidentalmente (p. ej., `mobile/mobile`), vuelve a la raíz del proyecto con `cd ..` hasta llegar a `oNotes`, luego `cd mobile` y repite los pasos 3–6.
 
 ## Funcionalidad
 - Crear, editar y eliminar notas.
@@ -46,5 +48,5 @@ Aplicación para notas con recordatorios locales pensada para Android.
 - La UI está diseñada para pantallas pequeñas: tarjetas y acciones se apilan verticalmente y usan botones grandes para facilitar el toque.
 
 ## Notas adicionales
-- Si actualizas dependencias, mantén la versión de `@react-native-community/datetimepicker` alineada con la que soporta Expo SDK 51 (ejemplo: `7.7.2`).
+- Si actualizas dependencias, mantén la versión de `@react-native-community/datetimepicker` alineada con la que soporta Expo SDK 51 (ejemplo: `7.7.1`).
 - La versión web previa (`frontend/`) sigue disponible para referencia, pero el flujo recomendado es la app Android en `mobile/`.
