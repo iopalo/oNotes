@@ -35,7 +35,6 @@ export const NotesProvider = ({ children }) => {
       try {
         const parsed = JSON.parse(saved);
         const normalizedNotes = (parsed.notes ?? []).map((note) => ({
-          reminders: [],
           ...note,
           reminders: note.reminders ?? [],
         }));

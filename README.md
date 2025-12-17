@@ -8,21 +8,23 @@ Aplicación para notas con recordatorios locales pensada para Android.
 
 ## Requisitos
 - Node.js 18+
-- Expo CLI (opcional si usas `npx expo start` directamente)
-- Dispositivo Android con la app **Expo Go** o un emulador Android configurado
+- Expo CLI instalada globalmente (`npm install -g expo-cli`) **o** usar todos los comandos con `npx`
+- Dispositivo Android con la app **Expo Go** instalada, o un emulador Android configurado
 
-## Ejecutar en Android
-1. Instala dependencias:
-   ```bash
-   cd mobile
-   npm install
-   ```
-2. Arranca el servidor de desarrollo con acceso en red local:
-   ```bash
-   npm start
-   ```
-   - Escanea el código QR con Expo Go (Android) o usa la opción `a` en la consola para abrir el emulador Android.
-   - Si tu red bloquea la conexión local, usa el modo túnel (`npm start -- --tunnel`).
+## Ejecutar en Android (paso a paso)
+> Sugerido para PowerShell/cmd en Windows: escribe los comandos sin copiar el bloque con \`\`\`bash\`\`\` para evitar errores de comando no encontrado.
+
+1. Entra a la carpeta móvil: `cd mobile`
+2. Instala dependencias (usa `npm config set legacy-peer-deps true` si aparece un error de peer deps): `npm install`
+   - Si aparece `No matching version found for @react-native-community/datetimepicker`, asegúrate de que el archivo `mobile/package.json` tenga la versión `7.7.2` y vuelve a correr `npm install`.
+3. Si el comando `expo` no existe, instala la CLI global `npm install -g expo-cli` **o** ejecuta todos los comandos con `npx expo ...`.
+4. Inicia el servidor de desarrollo (Metro):
+   - Con CLI global: `npm start`
+   - Con npx: `npx expo start`
+5. Conéctalo a tu Android:
+   - En un emulador: con Metro abierto, presiona `a` para lanzar la app en el emulador.
+   - En dispositivo físico: escanea el QR que muestra Metro con la app **Expo Go** (deben estar en la misma red Wi-Fi).
+6. Si la red bloquea conexiones locales, arranca en modo túnel: `npx expo start --tunnel` (o `npm start -- --tunnel`).
 
 ## Funcionalidad
 - Crear, editar y eliminar notas.
@@ -42,3 +44,7 @@ Aplicación para notas con recordatorios locales pensada para Android.
 - Usa Expo Go en un teléfono real conectado a la misma red Wi-Fi que tu computador.
 - En emuladores (Android Studio), inicia el emulador antes de correr `npm start` y presiona `a` en la consola de Metro/Expo.
 - La UI está diseñada para pantallas pequeñas: tarjetas y acciones se apilan verticalmente y usan botones grandes para facilitar el toque.
+
+## Notas adicionales
+- Si actualizas dependencias, mantén la versión de `@react-native-community/datetimepicker` alineada con la que soporta Expo SDK 51 (ejemplo: `7.7.2`).
+- La versión web previa (`frontend/`) sigue disponible para referencia, pero el flujo recomendado es la app Android en `mobile/`.
