@@ -17,7 +17,8 @@ Aplicación para notas con recordatorios locales pensada para Android.
 1. Entra a la carpeta móvil: `cd mobile`
 2. (Opcional) Si usas Windows y tienes avisos de peer deps, ejecuta una sola vez: `npm config set legacy-peer-deps true`
 3. Instala dependencias del proyecto (instala Expo localmente en `node_modules`): `npm install`
-   - Si aparece `No matching version found for @react-native-community/datetimepicker`, cambia la versión en `mobile/package.json` a `7.7.1` (ya viene configurada) y repite `npm install`.
+   - Si aparece `No matching version found for @react-native-community/datetimepicker`, cambia la versión en `mobile/package.json` a `7.6.1` (ya viene configurada) y repite `npm install`.
+   - Si tras el error de `datetimepicker` el CLI te sigue diciendo que `expo` no se encuentra, borra el fallo corrigiendo la versión y ejecuta de nuevo `npm install` hasta que finalice sin errores (así se instala `expo` localmente).
 4. Si `expo` no se reconoce, usa siempre el CLI local con `npx expo <comando>` (recomendado) o instala el CLI global: `npm install -g expo-cli`.
 5. Inicia el servidor Metro (elige una opción):
    - Con scripts npm: `npm start`
@@ -48,5 +49,5 @@ Aplicación para notas con recordatorios locales pensada para Android.
 - La UI está diseñada para pantallas pequeñas: tarjetas y acciones se apilan verticalmente y usan botones grandes para facilitar el toque.
 
 ## Notas adicionales
-- Si actualizas dependencias, mantén la versión de `@react-native-community/datetimepicker` alineada con la que soporta Expo SDK 51 (ejemplo: `7.7.1`).
+- Si actualizas dependencias, mantén la versión de `@react-native-community/datetimepicker` alineada con la que soporta Expo SDK 51 (ejemplo: `7.6.1`).
 - La versión web previa (`frontend/`) sigue disponible para referencia, pero el flujo recomendado es la app Android en `mobile/`.
