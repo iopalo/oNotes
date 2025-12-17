@@ -1,46 +1,44 @@
 # oNotes
 
-Aplicación React para crear notas con recordatorios locales.
+Aplicación para notas con recordatorios locales pensada para Android.
 
 ## Estructura
-- `frontend/`: proyecto Vite con React y un estado global via `useReducer` para notas y recordatorios.
+- `mobile/`: proyecto Expo (React Native) con estado global vía `useReducer`, persistencia con `AsyncStorage` y recordatorios simulados con timers.
+- `frontend/`: versión web previa (Vite + React). La app principal ahora es la móvil.
 
-## Uso
-1. Instala dependencias (Node 18+):
+## Requisitos
+- Node.js 18+
+- Expo CLI (opcional si usas `npx expo start` directamente)
+- Dispositivo Android con la app **Expo Go** o un emulador Android configurado
+
+## Ejecutar en Android
+1. Instala dependencias:
    ```bash
-   cd frontend
+   cd mobile
    npm install
    ```
-2. Ejecuta la app en modo desarrollo:
+2. Arranca el servidor de desarrollo con acceso en red local:
    ```bash
-   npm run dev
+   npm start
    ```
-3. Genera el build de producción:
-   ```bash
-   npm run build
-   ```
-4. Previsualiza el build:
-   ```bash
-   npm run preview
-   ```
+   - Escanea el código QR con Expo Go (Android) o usa la opción `a` en la consola para abrir el emulador Android.
+   - Si tu red bloquea la conexión local, usa el modo túnel (`npm start -- --tunnel`).
 
-## Notas y recordatorios
-- Cada nota permite definir múltiples recordatorios con fecha y hora.
-- Los datos se guardan automáticamente en `localStorage`, por lo que al recargar el navegador se mantienen las notas y sus recordatorios.
-- Los recordatorios se programan con `setTimeout` en el navegador: cuando llega la hora aparecen avisos en la sección "Recordatorios activos". Mantén la pestaña abierta para recibirlos.
-- Puedes descartar un aviso individual o limpiar todos los avisos mostrados.
+## Funcionalidad
+- Crear, editar y eliminar notas.
+- Cada nota admite múltiples recordatorios con fecha y hora.
+- Persistencia local con `AsyncStorage` para mantener las notas entre sesiones.
+- Recordatorios simulados: se programan con `setTimeout` y muestran avisos dentro de la app cuando llega la hora (mantén la app abierta o en primer plano durante las pruebas).
+- Panel para descartar avisos individuales o limpiar todos los recordatorios mostrados.
 
-## Componentes principales
-- `NotesList`: lista las notas existentes y permite editar o eliminar.
-- `NoteForm`: formulario para crear o actualizar notas y gestionar sus recordatorios asociados.
-- `ReminderScheduler`: interfaz para añadir y eliminar recordatorios con fecha y hora.
-- Estado global con `NotesProvider` (`useReducer`) que maneja notas y persistencia.
+## Componentes principales (móvil)
+- `NoteForm`: formulario de creación/edición de notas y sus recordatorios.
+- `ReminderScheduler`: selector de fecha/hora para programar y eliminar recordatorios.
+- `NotesList`: listado de notas con acciones de edición y borrado.
+- `useReminderNotifications`: programa timers y maneja los avisos cuando se cumplen.
+- `NotesProvider` (`mobile/src/state/NotesContext.js`): administra el estado global con `useReducer`, IDs únicos y sincronización con almacenamiento local.
 
-## Cómo probarla en el celular
-- Para ver la app en un teléfono real con el servidor de desarrollo, ejecuta:
-  ```bash
-  npm run dev -- --host --port 4173
-  ```
-  Luego abre `http://<tu-ip-local>:4173/` desde el navegador del celular conectado a la misma red.
-- Si prefieres un emulador, usa las DevTools del navegador (Ctrl+Shift+M en Chrome/Firefox) y elige un dispositivo móvil.
-- La UI es responsive: en pantallas estrechas, el encabezado y las tarjetas se apilan en una sola columna para facilitar la lectura y el toque.
+## Consejos para probar en Android
+- Usa Expo Go en un teléfono real conectado a la misma red Wi-Fi que tu computador.
+- En emuladores (Android Studio), inicia el emulador antes de correr `npm start` y presiona `a` en la consola de Metro/Expo.
+- La UI está diseñada para pantallas pequeñas: tarjetas y acciones se apilan verticalmente y usan botones grandes para facilitar el toque.
