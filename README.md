@@ -30,20 +30,21 @@ Aplicación para notas con recordatorios locales pensada para Android.
 7. Si cambiaste de carpeta accidentalmente (p. ej., `mobile/mobile`), vuelve a la raíz del proyecto con `cd ..` hasta llegar a `oNotes`, luego `cd mobile` y repite los pasos 3–6.
 
 ## Funcionalidad
-- Pestañas separadas de **Notas** y **Recordatorios** para trabajar por flujo.
+- Pestañas separadas de **Notas** y **Recordatorios** para trabajar por flujo (recordatorios sueltos no crean notas).
 - Crear, editar y eliminar notas.
-- Cada nota admite múltiples recordatorios con fecha y hora, con opciones rápidas: 1 semana antes, 1 día antes o el mismo día a las 00:00.
+- Cada nota admite múltiples recordatorios con fecha y hora, con opciones rápidas: 1 semana antes, 1 día antes, a la hora del evento u otra fecha/hora personalizada.
 - Cada nota puede incluir listas tipo to-do con check y tachado.
 - Persistencia local con `AsyncStorage` para mantener las notas entre sesiones.
 - Recordatorios simulados: se programan con `setTimeout` y muestran avisos dentro de la app cuando llega la hora (mantén la app abierta o en primer plano durante las pruebas).
 - Panel para descartar avisos individuales o limpiar todos los recordatorios mostrados.
 
 ## Componentes principales (móvil)
-- `NoteForm`: formulario de creación/edición de notas y sus recordatorios.
-- `ReminderScheduler`: selector de fecha/hora para programar y eliminar recordatorios.
+- `NoteForm`: formulario de creación/edición de notas, recordatorios ligados a la nota y to-dos.
+- `ReminderScheduler`: selector de fecha/hora para programar recordatorios de una nota con presets y opción "Otra".
+- `StandaloneReminderForm`: formulario rápido para recordatorios independientes (sin crear nota) con presets y opción "Otra".
 - `NotesList`: listado de notas con acciones de edición y borrado.
 - `useReminderNotifications`: programa timers y maneja los avisos cuando se cumplen.
-- `NotesProvider` (`mobile/src/state/NotesContext.js`): administra el estado global con `useReducer`, IDs únicos y sincronización con almacenamiento local.
+- `NotesProvider` (`mobile/src/state/NotesContext.js`): administra el estado global de notas y recordatorios sueltos con `useReducer`, IDs únicos y sincronización con almacenamiento local.
 
 ## Consejos para probar en Android
 - Usa Expo Go en un teléfono real conectado a la misma red Wi-Fi que tu computador.

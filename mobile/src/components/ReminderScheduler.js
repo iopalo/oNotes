@@ -8,13 +8,15 @@ const formatDate = (timestamp) => new Date(timestamp).toLocaleString();
 const OPTIONS = [
   { key: 'week', label: '1 semana antes', offset: 7 * 24 * 60 * 60 * 1000 },
   { key: 'day', label: '1 día antes', offset: 24 * 60 * 60 * 1000 },
-  { key: 'same', label: 'Mismo día 00:00', offset: null },
+  { key: 'event', label: 'A la hora del evento', offset: 0 },
+  { key: 'custom', label: 'Otra', offset: null },
 ];
 
-export default function ReminderScheduler({ reminders, onChange }) {
+export default function ReminderScheduler({ reminders = [], onChange }) {
   const [pickerMode, setPickerMode] = useState(null);
   const [eventDate, setEventDate] = useState(() => new Date(Date.now() + 24 * 60 * 60 * 1000));
-  const [selectedOffsets, setSelectedOffsets] = useState(new Set(OPTIONS.map((opt) => opt.key)));
+  const [customReminder, setCustomReminder] = useState(() => new Date(Date.now() + 2 * 60 * 60 * 1000));
+  const [selectedOffsets, setSelectedOffsets] = useState(new Set(['event']));
 
   const sortedReminders = useMemo(
     () => [...(reminders || [])].sort((a, b) => a.timestamp - b.timestamp),
@@ -56,6 +58,24 @@ export default function ReminderScheduler({ reminders, onChange }) {
       updated.setMinutes(current.getMinutes());
       setEventDate(updated);
       setPickerMode(null);
+      return;
+    }
+
+    if (pickerMode === 'customDate') {
+      const updated = new Date(current);
+      updated.setHours(customReminder.getHours());
+      updated.setMinutes(customReminder.getMinutes());
+      setCustomReminder(updated);
+      setPickerMode('customTime');
+      return;
+    }
+
+    if (pickerMode === 'customTime') {
+      const updated = new Date(customReminder);
+      updated.setHours(current.getHours());
+      updated.setMinutes(current.getMinutes());
+      setCustomReminder(updated);
+      setPickerMode(null);
     }
   };
 
@@ -63,10 +83,11 @@ export default function ReminderScheduler({ reminders, onChange }) {
     const now = Date.now();
     const additions = OPTIONS.filter((opt) => selectedOffsets.has(opt.key))
       .map((opt) => {
-        if (opt.key === 'same') {
-          const midnight = new Date(eventDate);
-          midnight.setHours(0, 0, 0, 0);
-          return midnight.getTime();
+        if (opt.key === 'custom') {
+          return customReminder.getTime();
+        }
+        if (opt.key === 'event') {
+          return eventDate.getTime();
         }
         return eventDate.getTime() - opt.offset;
       })
@@ -88,13 +109,19 @@ export default function ReminderScheduler({ reminders, onChange }) {
       </View>
 
       <Text style={styles.selectedDate}>Evento: {formatDate(eventDate.getTime())}</Text>
+      <Text style={styles.selectedDate}>Personalizado: {formatDate(customReminder.getTime())}</Text>
 
       <View style={styles.optionsRow}>
         {OPTIONS.map((opt) => (
           <Pressable
             key={opt.key}
             style={[styles.optionChip, selectedOffsets.has(opt.key) && styles.optionChipActive]}
-            onPress={() => toggleOption(opt.key)}
+            onPress={() => {
+              toggleOption(opt.key);
+              if (opt.key === 'custom') {
+                setPickerMode('customDate');
+              }
+            }}
           >
             <Text
               style={[styles.optionText, selectedOffsets.has(opt.key) && styles.optionTextActive]}
@@ -127,8 +154,8 @@ export default function ReminderScheduler({ reminders, onChange }) {
 
       {pickerMode && (
         <DateTimePicker
-          value={eventDate}
-          mode={pickerMode}
+          value={pickerMode?.startsWith('custom') ? customReminder : eventDate}
+          mode={pickerMode?.includes('time') ? 'time' : 'date'}
           is24Hour
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
           onChange={onDateTimeChange}

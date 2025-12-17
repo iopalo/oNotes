@@ -2,14 +2,17 @@ import React, { createContext, useContext, useEffect, useMemo, useReducer, useSt
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createId } from '../utils/ids';
 
-const STORAGE_KEY = 'onotes.notes';
+const STORAGE_KEY = 'onotes.data';
 
 const initialState = {
   notes: [],
+  reminders: [],
 };
 
 function reducer(state, action) {
   switch (action.type) {
+    case 'HYDRATE':
+      return { ...state, ...action.payload };
     case 'SET_NOTES':
       return { ...state, notes: action.payload };
     case 'ADD_NOTE':
@@ -21,6 +24,19 @@ function reducer(state, action) {
       };
     case 'DELETE_NOTE':
       return { ...state, notes: state.notes.filter((note) => note.id !== action.payload) };
+    case 'SET_REMINDERS':
+      return { ...state, reminders: action.payload };
+    case 'ADD_REMINDER':
+      return { ...state, reminders: [...state.reminders, action.payload] };
+    case 'UPDATE_REMINDER':
+      return {
+        ...state,
+        reminders: state.reminders.map((reminder) =>
+          reminder.id === action.payload.id ? action.payload : reminder
+        ),
+      };
+    case 'DELETE_REMINDER':
+      return { ...state, reminders: state.reminders.filter((reminder) => reminder.id !== action.payload) };
     default:
       return state;
   }
@@ -44,8 +60,23 @@ export function NotesProvider({ children }) {
     (async () => {
       try {
         const stored = await AsyncStorage.getItem(STORAGE_KEY);
+        const legacyNotes = await AsyncStorage.getItem('onotes.notes');
         if (stored) {
-          dispatch({ type: 'SET_NOTES', payload: JSON.parse(stored) });
+          const parsed = JSON.parse(stored);
+
+          if (Array.isArray(parsed)) {
+            dispatch({ type: 'HYDRATE', payload: { notes: parsed, reminders: [] } });
+          } else {
+            dispatch({
+              type: 'HYDRATE',
+              payload: {
+                notes: parsed.notes || [],
+                reminders: parsed.reminders || [],
+              },
+            });
+          }
+        } else if (legacyNotes) {
+          dispatch({ type: 'HYDRATE', payload: { notes: JSON.parse(legacyNotes), reminders: [] } });
         }
       } catch (error) {
         console.warn('No se pudieron cargar las notas almacenadas', error);
@@ -57,10 +88,10 @@ export function NotesProvider({ children }) {
 
   useEffect(() => {
     if (!hydrated) return;
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state.notes)).catch((error) =>
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state)).catch((error) =>
       console.warn('No se pudieron guardar las notas', error)
     );
-  }, [state.notes, hydrated]);
+  }, [state, hydrated]);
 
   const actions = useMemo(
     () => ({
@@ -99,17 +130,35 @@ export function NotesProvider({ children }) {
         };
         dispatch({ type: 'UPDATE_NOTE', payload: updated });
       },
+      addReminder: ({ title, body, timestamp, targetDate }) => {
+        const reminder = {
+          id: createId(),
+          title: title?.trim() || 'Recordatorio',
+          body: body?.trim() || '',
+          timestamp,
+          targetDate,
+        };
+        dispatch({ type: 'ADD_REMINDER', payload: reminder });
+        return reminder.id;
+      },
+      updateReminder: (reminder) =>
+        dispatch({
+          type: 'UPDATE_REMINDER',
+          payload: { ...reminder, id: reminder.id || createId() },
+        }),
+      deleteReminder: (reminderId) => dispatch({ type: 'DELETE_REMINDER', payload: reminderId }),
     }),
-    [state.notes]
+    [state.notes, state.reminders]
   );
 
   const value = useMemo(
     () => ({
       notes: state.notes,
+      reminders: state.reminders,
       hydrated,
       ...actions,
     }),
-    [state.notes, hydrated, actions]
+    [state.notes, state.reminders, hydrated, actions]
   );
 
   return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;

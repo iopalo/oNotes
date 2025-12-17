@@ -3,6 +3,7 @@ import { SafeAreaView, StatusBar, StyleSheet, Text, View, Pressable, FlatList } 
 import { NotesProvider, useNotes } from './src/state/NotesContext';
 import NoteForm from './src/components/NoteForm';
 import NotesList from './src/components/NotesList';
+import StandaloneReminderForm from './src/components/StandaloneReminderForm';
 import { useReminderNotifications } from './src/hooks/useReminderNotifications';
 
 function AlertsPanel({ alerts, onDismiss, onClear }) {
@@ -31,10 +32,13 @@ function AlertsPanel({ alerts, onDismiss, onClear }) {
 }
 
 function NotesScreen({ onShowComposer }) {
-  const { notes, hydrated, addNote, updateNote, deleteNote, toggleTodo } = useNotes();
+  const { notes, reminders, hydrated, addNote, updateNote, deleteNote, toggleTodo } = useNotes();
   const [editingNote, setEditingNote] = useState(null);
   const [showComposer, setShowComposer] = useState(false);
-  const { alerts, dismissAlert, clearAlerts } = useReminderNotifications(hydrated ? notes : []);
+  const { alerts, dismissAlert, clearAlerts } = useReminderNotifications(
+    hydrated ? notes : [],
+    hydrated ? reminders : []
+  );
 
   const handleSubmit = (note) => {
     if (note.id) {
@@ -108,25 +112,43 @@ function NotesScreen({ onShowComposer }) {
 }
 
 function RemindersScreen() {
-  const { notes, updateNote, addNote } = useNotes();
+  const { notes, reminders, addReminder, deleteReminder, updateNote } = useNotes();
   const [showComposer, setShowComposer] = useState(false);
 
-  const reminders = useMemo(() => {
-    return notes
-      .flatMap((note) => (note.reminders || []).map((reminder) => ({ ...reminder, note })))
-      .sort((a, b) => a.timestamp - b.timestamp);
-  }, [notes]);
+  const reminderItems = useMemo(() => {
+    const noteReminders = notes.flatMap((note) =>
+      (note.reminders || []).map((reminder) => ({
+        ...reminder,
+        type: 'note',
+        note,
+        id: reminder.id,
+        title: note.title,
+      }))
+    );
 
-  const removeReminder = (noteId, reminderId) => {
-    const target = notes.find((note) => note.id === noteId);
+    const standalone = reminders.map((reminder) => ({
+      ...reminder,
+      type: 'standalone',
+    }));
+
+    return [...standalone, ...noteReminders].sort((a, b) => a.timestamp - b.timestamp);
+  }, [notes, reminders]);
+
+  const removeReminder = (item) => {
+    if (item.type === 'standalone') {
+      deleteReminder(item.id);
+      return;
+    }
+
+    const target = notes.find((note) => note.id === item.note?.id);
     if (!target) return;
-    updateNote({ ...target, reminders: (target.reminders || []).filter((r) => r.id !== reminderId) });
+    updateNote({ ...target, reminders: (target.reminders || []).filter((r) => r.id !== item.id) });
   };
 
   return (
     <View style={styles.tabContent}>
       <FlatList
-        data={reminders}
+        data={reminderItems}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={() => (
@@ -142,12 +164,11 @@ function RemindersScreen() {
               </Pressable>
             </View>
             {showComposer ? (
-              <NoteForm
-                onSubmit={(note) => {
-                  addNote(note);
+              <StandaloneReminderForm
+                onSubmit={(reminder) => {
+                  addReminder(reminder);
                   setShowComposer(false);
                 }}
-                onCancelEdit={() => setShowComposer(false)}
               />
             ) : null}
           </View>
@@ -155,12 +176,16 @@ function RemindersScreen() {
         renderItem={({ item }) => (
           <View style={styles.reminderCard}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>{item.note?.title || 'Sin título'}</Text>
+              <Text style={styles.cardTitle}>{item.title || 'Sin título'}</Text>
               <Text style={styles.reminderTime}>{new Date(item.timestamp).toLocaleString()}</Text>
+              {item.body ? <Text style={styles.reminderNote}>{item.body}</Text> : null}
+              {item.type === 'note' && item.note?.title ? (
+                <Text style={styles.reminderNote}>Nota: {item.note.title}</Text>
+              ) : null}
             </View>
             <Pressable
               style={[styles.actionButton, styles.danger]}
-              onPress={() => removeReminder(item.note.id, item.id)}
+              onPress={() => removeReminder(item)}
             >
               <Text style={[styles.actionText, styles.dangerText]}>Eliminar</Text>
             </Pressable>
@@ -347,6 +372,10 @@ const styles = StyleSheet.create({
   },
   reminderTime: {
     color: '#4b5563',
+    marginTop: 4,
+  },
+  reminderNote: {
+    color: '#6b7280',
     marginTop: 4,
   },
   fabInline: {
