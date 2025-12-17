@@ -30,8 +30,10 @@ Aplicación para notas con recordatorios locales pensada para Android.
 7. Si cambiaste de carpeta accidentalmente (p. ej., `mobile/mobile`), vuelve a la raíz del proyecto con `cd ..` hasta llegar a `oNotes`, luego `cd mobile` y repite los pasos 3–6.
 
 ## Funcionalidad
+- Pestañas separadas de **Notas** y **Recordatorios** para trabajar por flujo.
 - Crear, editar y eliminar notas.
-- Cada nota admite múltiples recordatorios con fecha y hora.
+- Cada nota admite múltiples recordatorios con fecha y hora, con opciones rápidas: 1 semana antes, 1 día antes o el mismo día a las 00:00.
+- Cada nota puede incluir listas tipo to-do con check y tachado.
 - Persistencia local con `AsyncStorage` para mantener las notas entre sesiones.
 - Recordatorios simulados: se programan con `setTimeout` y muestran avisos dentro de la app cuando llega la hora (mantén la app abierta o en primer plano durante las pruebas).
 - Panel para descartar avisos individuales o limpiar todos los recordatorios mostrados.

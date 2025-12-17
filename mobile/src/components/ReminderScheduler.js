@@ -5,14 +5,33 @@ import { createId } from '../utils/ids';
 
 const formatDate = (timestamp) => new Date(timestamp).toLocaleString();
 
+const OPTIONS = [
+  { key: 'week', label: '1 semana antes', offset: 7 * 24 * 60 * 60 * 1000 },
+  { key: 'day', label: '1 día antes', offset: 24 * 60 * 60 * 1000 },
+  { key: 'same', label: 'Mismo día 00:00', offset: null },
+];
+
 export default function ReminderScheduler({ reminders, onChange }) {
   const [pickerMode, setPickerMode] = useState(null);
-  const [draftDate, setDraftDate] = useState(() => new Date(Date.now() + 15 * 60 * 1000));
+  const [eventDate, setEventDate] = useState(() => new Date(Date.now() + 24 * 60 * 60 * 1000));
+  const [selectedOffsets, setSelectedOffsets] = useState(new Set(OPTIONS.map((opt) => opt.key)));
 
   const sortedReminders = useMemo(
-    () => [...reminders].sort((a, b) => a.timestamp - b.timestamp),
+    () => [...(reminders || [])].sort((a, b) => a.timestamp - b.timestamp),
     [reminders]
   );
+
+  const toggleOption = (key) => {
+    setSelectedOffsets((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
 
   const onDateTimeChange = (event, selectedDate) => {
     if (event.type === 'dismissed') {
@@ -20,27 +39,43 @@ export default function ReminderScheduler({ reminders, onChange }) {
       return;
     }
 
-    const current = selectedDate || draftDate;
+    const current = selectedDate || eventDate;
 
     if (pickerMode === 'date') {
       const updated = new Date(current);
-      updated.setHours(draftDate.getHours());
-      updated.setMinutes(draftDate.getMinutes());
-      setDraftDate(updated);
+      updated.setHours(eventDate.getHours());
+      updated.setMinutes(eventDate.getMinutes());
+      setEventDate(updated);
       setPickerMode('time');
       return;
     }
 
     if (pickerMode === 'time') {
-      const updated = new Date(draftDate);
+      const updated = new Date(eventDate);
       updated.setHours(current.getHours());
       updated.setMinutes(current.getMinutes());
-
-      const reminder = { id: createId(), timestamp: updated.getTime() };
-      onChange([...reminders, reminder]);
-      setDraftDate(new Date(Date.now() + 15 * 60 * 1000));
+      setEventDate(updated);
       setPickerMode(null);
     }
+  };
+
+  const generateReminders = () => {
+    const now = Date.now();
+    const additions = OPTIONS.filter((opt) => selectedOffsets.has(opt.key))
+      .map((opt) => {
+        if (opt.key === 'same') {
+          const midnight = new Date(eventDate);
+          midnight.setHours(0, 0, 0, 0);
+          return midnight.getTime();
+        }
+        return eventDate.getTime() - opt.offset;
+      })
+      .filter((timestamp) => timestamp > now)
+      .map((timestamp) => ({ id: createId(), timestamp }));
+
+    if (!additions.length) return;
+    const merged = [...reminders, ...additions].sort((a, b) => a.timestamp - b.timestamp);
+    onChange(merged);
   };
 
   return (
@@ -48,9 +83,31 @@ export default function ReminderScheduler({ reminders, onChange }) {
       <View style={styles.header}>
         <Text style={styles.label}>Recordatorios</Text>
         <Pressable style={styles.addButton} onPress={() => setPickerMode('date')}>
-          <Text style={styles.addButtonText}>Añadir</Text>
+          <Text style={styles.addButtonText}>Elegir fecha</Text>
         </Pressable>
       </View>
+
+      <Text style={styles.selectedDate}>Evento: {formatDate(eventDate.getTime())}</Text>
+
+      <View style={styles.optionsRow}>
+        {OPTIONS.map((opt) => (
+          <Pressable
+            key={opt.key}
+            style={[styles.optionChip, selectedOffsets.has(opt.key) && styles.optionChipActive]}
+            onPress={() => toggleOption(opt.key)}
+          >
+            <Text
+              style={[styles.optionText, selectedOffsets.has(opt.key) && styles.optionTextActive]}
+            >
+              {opt.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <Pressable style={[styles.addButton, styles.generateButton]} onPress={generateReminders}>
+        <Text style={styles.addButtonText}>Añadir recordatorios</Text>
+      </Pressable>
 
       {sortedReminders.length === 0 ? (
         <Text style={styles.empty}>Sin recordatorios programados.</Text>
@@ -70,7 +127,7 @@ export default function ReminderScheduler({ reminders, onChange }) {
 
       {pickerMode && (
         <DateTimePicker
-          value={draftDate}
+          value={eventDate}
           mode={pickerMode}
           is24Hour
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
@@ -113,6 +170,39 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: 8,
     fontSize: 14,
+  },
+  selectedDate: {
+    marginTop: 8,
+    color: '#1f2937',
+    fontWeight: '600',
+  },
+  optionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  optionChip: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#f9fafb',
+  },
+  optionChipActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  optionText: {
+    color: '#111827',
+    fontWeight: '600',
+  },
+  optionTextActive: {
+    color: '#fff',
+  },
+  generateButton: {
+    marginTop: 10,
   },
   reminderRow: {
     flexDirection: 'row',
