@@ -89,6 +89,19 @@ export function NotesProvider({ children }) {
         } else if (legacyNotes) {
           const normalizedNotes = JSON.parse(legacyNotes || '[]').map(normalizeNote);
           dispatch({ type: 'HYDRATE', payload: { notes: normalizedNotes, reminders: [] } });
+          if (Array.isArray(parsed)) {
+            dispatch({ type: 'HYDRATE', payload: { notes: parsed, reminders: [] } });
+          } else {
+            dispatch({
+              type: 'HYDRATE',
+              payload: {
+                notes: parsed.notes || [],
+                reminders: parsed.reminders || [],
+              },
+            });
+          }
+        } else if (legacyNotes) {
+          dispatch({ type: 'HYDRATE', payload: { notes: JSON.parse(legacyNotes), reminders: [] } });
         }
       } catch (error) {
         console.warn('No se pudieron cargar las notas almacenadas', error);
@@ -118,6 +131,14 @@ export function NotesProvider({ children }) {
           size: size || 'm',
           createdAt: createdAt || Date.now(),
         });
+      addNote: ({ title, body, reminders, todos }) => {
+        const note = {
+          id: createId(),
+          title: title.trim() || 'Sin título',
+          body: body.trim(),
+          reminders: (reminders || []).map((reminder) => ({ ...reminder, id: reminder.id || createId() })),
+          todos: (todos || []).map((todo) => ({ ...todo, id: todo.id || createId() })),
+        };
         dispatch({ type: 'ADD_NOTE', payload: note });
         return note.id;
       },
@@ -128,6 +149,14 @@ export function NotesProvider({ children }) {
             ...note,
             createdAt: note.createdAt || Date.now(),
           }),
+          payload: {
+            ...note,
+            reminders: (note.reminders || []).map((reminder) => ({
+              ...reminder,
+              id: reminder.id || createId(),
+            })),
+            todos: (note.todos || []).map((todo) => ({ ...todo, id: todo.id || createId() })),
+          },
         }),
       deleteNote: (noteId) => dispatch({ type: 'DELETE_NOTE', payload: noteId }),
       toggleTodo: (noteId, todoId) => {

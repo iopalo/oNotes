@@ -8,6 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import ReminderScheduler from './ReminderScheduler';
 
 export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
@@ -19,6 +20,8 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
   const [todoDraft, setTodoDraft] = useState('');
   const [folder, setFolder] = useState('General');
   const [size, setSize] = useState('m');
+  const [todos, setTodos] = useState([]);
+  const [todoDraft, setTodoDraft] = useState('');
 
   const isEditing = useMemo(() => Boolean(initialNote), [initialNote]);
 
@@ -31,6 +34,7 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
       setTodos(initialNote.todos || []);
       setFolder(initialNote.folder || 'General');
       setSize(initialNote.size || 'm');
+      setTodos(initialNote.todos || []);
     } else {
       setTitle('');
       setBody('');
@@ -39,6 +43,7 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
       setTodos([]);
       setFolder('General');
       setSize('m');
+      setTodos([]);
     }
   }, [initialNote]);
 
@@ -53,6 +58,8 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
       folder,
       size,
       createdAt: initialNote?.createdAt,
+      reminders,
+      todos,
     });
     if (!isEditing) {
       setTitle('');
@@ -175,6 +182,7 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
         </View>
 
         {showReminders ? <ReminderScheduler reminders={reminders} onChange={setReminders} /> : null}
+        <ReminderScheduler reminders={reminders} onChange={setReminders} />
 
         <View style={styles.actions}>
           {isEditing && (

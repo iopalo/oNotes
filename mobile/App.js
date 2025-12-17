@@ -68,6 +68,7 @@ function NotesScreen({ onShowComposer }) {
       : (a, b) => (a.createdAt || 0) - (b.createdAt || 0);
     return filtered.slice().sort(sorter);
   }, [notes, sortMode, folderFilter]);
+  const memoizedNotes = useMemo(() => notes, [notes]);
 
   return (
     <View style={styles.tabContent}>
@@ -95,6 +96,7 @@ function NotesScreen({ onShowComposer }) {
 
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitleMain}>Notas</Text>
+              <Text style={styles.sectionTitleMain}>Notas guardadas</Text>
               <Pressable
                 accessibilityLabel="Crear nota"
                 style={styles.fabInline}
@@ -152,6 +154,11 @@ function NotesScreen({ onShowComposer }) {
           <NotesList
             note={item}
             index={index}
+          </View>
+        )}
+        renderItem={({ item }) => (
+          <NotesList
+            note={item}
             onEdit={(note) => {
               setEditingNote(note);
               setShowComposer(true);

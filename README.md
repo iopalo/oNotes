@@ -36,6 +36,10 @@ Aplicación para notas con recordatorios locales pensada para Android.
 - Las notas tienen checklists to-do con check/tachado y, de forma opcional, un desplegable para sumar recordatorios.
 - Cada nota puede añadir recordatorios (si el usuario lo despliega) con presets: 1 semana antes, 1 día antes, a la hora del evento u otra fecha/hora personalizada.
 - Persistencia local con `AsyncStorage` para mantener las notas y recordatorios entre sesiones.
+- Crear, editar y eliminar notas.
+- Cada nota admite múltiples recordatorios con fecha y hora, con opciones rápidas: 1 semana antes, 1 día antes, a la hora del evento u otra fecha/hora personalizada.
+- Cada nota puede incluir listas tipo to-do con check y tachado.
+- Persistencia local con `AsyncStorage` para mantener las notas entre sesiones.
 - Recordatorios simulados: se programan con `setTimeout` y muestran avisos dentro de la app cuando llega la hora (mantén la app abierta o en primer plano durante las pruebas).
 - Panel para descartar avisos individuales o limpiar todos los recordatorios mostrados.
 
