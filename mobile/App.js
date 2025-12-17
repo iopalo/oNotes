@@ -35,6 +35,8 @@ function NotesScreen({ onShowComposer }) {
   const { notes, reminders, hydrated, addNote, updateNote, deleteNote, toggleTodo } = useNotes();
   const [editingNote, setEditingNote] = useState(null);
   const [showComposer, setShowComposer] = useState(false);
+  const [sortMode, setSortMode] = useState('created');
+  const [folderFilter, setFolderFilter] = useState('all');
   const { alerts, dismissAlert, clearAlerts } = useReminderNotifications(
     hydrated ? notes : [],
     hydrated ? reminders : []
@@ -53,6 +55,19 @@ function NotesScreen({ onShowComposer }) {
     return noteId;
   };
 
+  const folders = useMemo(() => {
+    const set = new Set(notes.map((n) => n.folder || 'General'));
+    return ['all', ...Array.from(set)];
+  }, [notes]);
+
+  const memoizedNotes = useMemo(() => {
+    const base = notes.map((n) => ({ ...n, createdAt: n.createdAt || Date.now() }));
+    const filtered = folderFilter === 'all' ? base : base.filter((n) => (n.folder || 'General') === folderFilter);
+    const sorter = sortMode === 'alpha'
+      ? (a, b) => (a.title || '').localeCompare(b.title || '')
+      : (a, b) => (a.createdAt || 0) - (b.createdAt || 0);
+    return filtered.slice().sort(sorter);
+  }, [notes, sortMode, folderFilter]);
   const memoizedNotes = useMemo(() => notes, [notes]);
 
   return (
@@ -61,6 +76,9 @@ function NotesScreen({ onShowComposer }) {
         data={memoizedNotes}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
+        numColumns={2}
+        columnWrapperStyle={styles.masonryRow}
+        keyboardShouldPersistTaps="handled"
         ListHeaderComponent={() => (
           <View style={styles.listHeaderGap}>
             {showComposer || editingNote ? (
@@ -77,6 +95,7 @@ function NotesScreen({ onShowComposer }) {
             <AlertsPanel alerts={alerts} onDismiss={dismissAlert} onClear={clearAlerts} />
 
             <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitleMain}>Notas</Text>
               <Text style={styles.sectionTitleMain}>Notas guardadas</Text>
               <Pressable
                 accessibilityLabel="Crear nota"
@@ -90,6 +109,51 @@ function NotesScreen({ onShowComposer }) {
                 <Text style={styles.fabInlineText}>+</Text>
               </Pressable>
             </View>
+
+            <View style={styles.filterRow}>
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterLabel}>Ordenar por</Text>
+                <View style={styles.filterChips}>
+                  {[
+                    { key: 'created', label: 'Creación' },
+                    { key: 'alpha', label: 'A-Z' },
+                  ].map((opt) => (
+                    <Pressable
+                      key={opt.key}
+                      style={[styles.chip, sortMode === opt.key && styles.chipActive]}
+                      onPress={() => setSortMode(opt.key)}
+                    >
+                      <Text style={[styles.chipText, sortMode === opt.key && styles.chipTextActive]}>
+                        {opt.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterLabel}>Carpeta</Text>
+                <View style={styles.filterChips}>
+                  {folders.map((folder) => (
+                    <Pressable
+                      key={folder}
+                      style={[styles.chip, folderFilter === folder && styles.chipActive]}
+                      onPress={() => setFolderFilter(folder)}
+                    >
+                      <Text style={[styles.chipText, folderFilter === folder && styles.chipTextActive]}>
+                        {folder === 'all' ? 'Todas' : folder}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+        renderItem={({ item, index }) => (
+          <NotesList
+            note={item}
+            index={index}
           </View>
         )}
         renderItem={({ item }) => (
@@ -298,6 +362,9 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     gap: 8,
   },
+  masonryRow: {
+    justifyContent: 'space-between',
+  },
   listHeaderGap: {
     gap: 12,
   },
@@ -311,6 +378,37 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: '#0f172a',
+  },
+  filterRow: {
+    gap: 12,
+  },
+  filterGroup: {
+    gap: 6,
+  },
+  filterLabel: {
+    fontWeight: '700',
+    color: '#111827',
+  },
+  filterChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#e5e7eb',
+  },
+  chipActive: {
+    backgroundColor: '#2563eb',
+  },
+  chipText: {
+    color: '#111827',
+    fontWeight: '700',
+  },
+  chipTextActive: {
+    color: '#fff',
   },
   emptyMessage: {
     color: '#6b7280',

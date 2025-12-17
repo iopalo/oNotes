@@ -1,4 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import ReminderScheduler from './ReminderScheduler';
 
@@ -6,6 +15,11 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [reminders, setReminders] = useState([]);
+  const [showReminders, setShowReminders] = useState(false);
+  const [todos, setTodos] = useState([]);
+  const [todoDraft, setTodoDraft] = useState('');
+  const [folder, setFolder] = useState('General');
+  const [size, setSize] = useState('m');
   const [todos, setTodos] = useState([]);
   const [todoDraft, setTodoDraft] = useState('');
 
@@ -16,11 +30,19 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
       setTitle(initialNote.title || '');
       setBody(initialNote.body || '');
       setReminders(initialNote.reminders || []);
+      setShowReminders(Boolean(initialNote.reminders?.length));
+      setTodos(initialNote.todos || []);
+      setFolder(initialNote.folder || 'General');
+      setSize(initialNote.size || 'm');
       setTodos(initialNote.todos || []);
     } else {
       setTitle('');
       setBody('');
       setReminders([]);
+      setShowReminders(false);
+      setTodos([]);
+      setFolder('General');
+      setSize('m');
       setTodos([]);
     }
   }, [initialNote]);
@@ -31,6 +53,11 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
       id: initialNote?.id,
       title,
       body,
+      reminders: showReminders ? reminders : [],
+      todos,
+      folder,
+      size,
+      createdAt: initialNote?.createdAt,
       reminders,
       todos,
     });
@@ -76,6 +103,38 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
           textAlignVertical="top"
         />
 
+        <View style={styles.metaRow}>
+          <View style={styles.metaCol}>
+            <Text style={styles.metaLabel}>Carpeta</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej: Trabajo, Casa, Ideas"
+              value={folder}
+              onChangeText={setFolder}
+            />
+          </View>
+          <View style={styles.metaCol}>
+            <Text style={styles.metaLabel}>Tamaño</Text>
+            <View style={styles.sizeRow}>
+              {[
+                { key: 's', label: 'Pequeña' },
+                { key: 'm', label: 'Media' },
+                { key: 'l', label: 'Grande' },
+              ].map((opt) => (
+                <Pressable
+                  key={opt.key}
+                  style={[styles.chip, size === opt.key && styles.chipActive]}
+                  onPress={() => setSize(opt.key)}
+                >
+                  <Text style={[styles.chipText, size === opt.key && styles.chipTextActive]}>
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </View>
+
         <View style={styles.todoSection}>
           <View style={styles.todoHeader}>
             <Text style={styles.todoTitle}>Lista de tareas</Text>
@@ -110,6 +169,19 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
           )}
         </View>
 
+        <View style={styles.reminderToggle}>
+          <Text style={styles.metaLabel}>Añadir recordatorio a la nota</Text>
+          <Pressable
+            style={[styles.chip, showReminders && styles.chipActive]}
+            onPress={() => setShowReminders((prev) => !prev)}
+          >
+            <Text style={[styles.chipText, showReminders && styles.chipTextActive]}>
+              {showReminders ? 'Quitar recordatorios' : 'Mostrar opciones'}
+            </Text>
+          </Pressable>
+        </View>
+
+        {showReminders ? <ReminderScheduler reminders={reminders} onChange={setReminders} /> : null}
         <ReminderScheduler reminders={reminders} onChange={setReminders} />
 
         <View style={styles.actions}>
@@ -156,6 +228,46 @@ const styles = StyleSheet.create({
   },
   multiline: {
     minHeight: 120,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 8,
+  },
+  metaCol: {
+    flex: 1,
+  },
+  metaLabel: {
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 6,
+  },
+  sizeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#e5e7eb',
+  },
+  chipActive: {
+    backgroundColor: '#2563eb',
+  },
+  chipText: {
+    color: '#111827',
+    fontWeight: '700',
+  },
+  chipTextActive: {
+    color: '#fff',
+  },
+  reminderToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
   },
   todoSection: {
     borderTopWidth: 1,

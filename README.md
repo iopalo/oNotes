@@ -31,6 +31,11 @@ Aplicación para notas con recordatorios locales pensada para Android.
 
 ## Funcionalidad
 - Pestañas separadas de **Notas** y **Recordatorios** para trabajar por flujo (recordatorios sueltos no crean notas).
+- Crear, editar y eliminar notas con tarjetas tipo "keep" (dos columnas, colores suaves, tamaño configurable pequeño/mediano/grande).
+- Las notas se pueden agrupar en carpetas y ordenar por fecha de creación o alfabéticamente desde la cabecera de la pestaña.
+- Las notas tienen checklists to-do con check/tachado y, de forma opcional, un desplegable para sumar recordatorios.
+- Cada nota puede añadir recordatorios (si el usuario lo despliega) con presets: 1 semana antes, 1 día antes, a la hora del evento u otra fecha/hora personalizada.
+- Persistencia local con `AsyncStorage` para mantener las notas y recordatorios entre sesiones.
 - Crear, editar y eliminar notas.
 - Cada nota admite múltiples recordatorios con fecha y hora, con opciones rápidas: 1 semana antes, 1 día antes, a la hora del evento u otra fecha/hora personalizada.
 - Cada nota puede incluir listas tipo to-do con check y tachado.

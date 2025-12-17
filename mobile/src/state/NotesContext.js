@@ -9,6 +9,20 @@ const initialState = {
   reminders: [],
 };
 
+const normalizeNote = (note) => ({
+  id: note.id,
+  title: note.title || 'Sin título',
+  body: note.body || '',
+  reminders: (note.reminders || []).map((reminder) => ({
+    ...reminder,
+    id: reminder.id || createId(),
+  })),
+  todos: (note.todos || []).map((todo) => ({ ...todo, id: todo.id || createId() })),
+  createdAt: note.createdAt || Date.now(),
+  folder: note.folder || 'General',
+  size: note.size || 'm',
+});
+
 function reducer(state, action) {
   switch (action.type) {
     case 'HYDRATE':
@@ -64,6 +78,17 @@ export function NotesProvider({ children }) {
         if (stored) {
           const parsed = JSON.parse(stored);
 
+          const parsedNotes = Array.isArray(parsed) ? parsed : parsed.notes || [];
+          const parsedReminders = Array.isArray(parsed) ? [] : parsed.reminders || [];
+          const normalizedNotes = (parsedNotes || []).map(normalizeNote);
+
+          dispatch({
+            type: 'HYDRATE',
+            payload: { notes: normalizedNotes, reminders: parsedReminders },
+          });
+        } else if (legacyNotes) {
+          const normalizedNotes = JSON.parse(legacyNotes || '[]').map(normalizeNote);
+          dispatch({ type: 'HYDRATE', payload: { notes: normalizedNotes, reminders: [] } });
           if (Array.isArray(parsed)) {
             dispatch({ type: 'HYDRATE', payload: { notes: parsed, reminders: [] } });
           } else {
@@ -95,6 +120,17 @@ export function NotesProvider({ children }) {
 
   const actions = useMemo(
     () => ({
+      addNote: ({ title, body, reminders, todos, folder, size, createdAt }) => {
+        const note = normalizeNote({
+          id: createId(),
+          title: title.trim() || 'Sin título',
+          body: body.trim(),
+          reminders: reminders || [],
+          todos: todos || [],
+          folder: folder?.trim() || 'General',
+          size: size || 'm',
+          createdAt: createdAt || Date.now(),
+        });
       addNote: ({ title, body, reminders, todos }) => {
         const note = {
           id: createId(),
@@ -109,6 +145,10 @@ export function NotesProvider({ children }) {
       updateNote: (note) =>
         dispatch({
           type: 'UPDATE_NOTE',
+          payload: normalizeNote({
+            ...note,
+            createdAt: note.createdAt || Date.now(),
+          }),
           payload: {
             ...note,
             reminders: (note.reminders || []).map((reminder) => ({
