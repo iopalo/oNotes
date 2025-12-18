@@ -10,15 +10,16 @@ const initialState = {
 };
 
 const normalizeNote = (note) => ({
-  id: note.id,
+  id: note.id || createId(),
   title: note.title || 'Sin título',
   body: note.body || '',
   reminders: (note.reminders || []).map((reminder) => ({
     ...reminder,
     id: reminder.id || createId(),
+    timestamp: Number(reminder.timestamp) || Date.now(),
   })),
   todos: (note.todos || []).map((todo) => ({ ...todo, id: todo.id || createId() })),
-  createdAt: note.createdAt || Date.now(),
+  createdAt: Number(note.createdAt) || Date.now(),
   folder: note.folder || 'General',
   size: note.size || 'm',
 });
@@ -110,22 +111,14 @@ export function NotesProvider({ children }) {
       addNote: ({ title, body, reminders, todos, folder, size, createdAt }) => {
         const note = normalizeNote({
           id: createId(),
-          title: title.trim() || 'Sin título',
-          body: body.trim(),
+          title: title?.trim() || 'Sin título',
+          body: body?.trim() || '',
           reminders: reminders || [],
           todos: todos || [],
           folder: folder?.trim() || 'General',
           size: size || 'm',
           createdAt: createdAt || Date.now(),
         });
-      addNote: ({ title, body, reminders, todos }) => {
-        const note = {
-          id: createId(),
-          title: title.trim() || 'Sin título',
-          body: body.trim(),
-          reminders: (reminders || []).map((reminder) => ({ ...reminder, id: reminder.id || createId() })),
-          todos: (todos || []).map((todo) => ({ ...todo, id: todo.id || createId() })),
-        };
         dispatch({ type: 'ADD_NOTE', payload: note });
         return note.id;
       },
@@ -136,14 +129,6 @@ export function NotesProvider({ children }) {
             ...note,
             createdAt: note.createdAt || Date.now(),
           }),
-          payload: {
-            ...note,
-            reminders: (note.reminders || []).map((reminder) => ({
-              ...reminder,
-              id: reminder.id || createId(),
-            })),
-            todos: (note.todos || []).map((todo) => ({ ...todo, id: todo.id || createId() })),
-          },
         }),
       deleteNote: (noteId) => dispatch({ type: 'DELETE_NOTE', payload: noteId }),
       toggleTodo: (noteId, todoId) => {
