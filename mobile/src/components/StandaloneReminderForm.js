@@ -11,13 +11,15 @@ const OPTIONS = [
 
 const formatDate = (timestamp) => new Date(timestamp).toLocaleString();
 
-export default function StandaloneReminderForm({ onSubmit }) {
+export default function StandaloneReminderForm({ onSubmit, colors }) {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [targetDate, setTargetDate] = useState(() => new Date(Date.now() + 24 * 60 * 60 * 1000));
   const [customDate, setCustomDate] = useState(() => new Date(Date.now() + 2 * 60 * 60 * 1000));
   const [selectedOffsets, setSelectedOffsets] = useState(new Set(['event']));
   const [pickerMode, setPickerMode] = useState(null);
+
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const selectedLabels = useMemo(
     () => OPTIONS.filter((opt) => selectedOffsets.has(opt.key)).map((opt) => opt.label).join(', '),
@@ -110,12 +112,14 @@ export default function StandaloneReminderForm({ onSubmit }) {
         <TextInput
           style={styles.input}
           placeholder="Título"
+          placeholderTextColor={colors.muted}
           value={title}
           onChangeText={setTitle}
         />
         <TextInput
           style={[styles.input, styles.multiline]}
           placeholder="Notas opcionales"
+          placeholderTextColor={colors.muted}
           value={body}
           onChangeText={setBody}
           multiline
@@ -167,83 +171,88 @@ export default function StandaloneReminderForm({ onSubmit }) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
-    gap: 8,
-    marginBottom: 12,
-  },
-  header: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-  },
-  multiline: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  sectionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  caption: {
-    color: '#6b7280',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  value: {
-    color: '#0f172a',
-    fontWeight: '700',
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#f9fafb',
-  },
-  chipActive: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
-  },
-  chipText: {
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  chipTextActive: {
-    color: '#fff',
-  },
-  helper: {
-    color: '#6b7280',
-    fontSize: 12,
-  },
-  button: {
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  primary: {
-    backgroundColor: '#2563eb',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '800',
-  },
-});
+const makeStyles = (colors) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: 14,
+      gap: 8,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    header: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 16,
+      color: colors.text,
+      backgroundColor: colors.card,
+    },
+    multiline: {
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    sectionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    caption: {
+      color: colors.secondaryText,
+      fontWeight: '600',
+      marginBottom: 4,
+    },
+    value: {
+      color: colors.text,
+      fontWeight: '700',
+    },
+    chipsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    chip: {
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.chip,
+    },
+    chipActive: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    chipText: {
+      fontWeight: '700',
+      color: colors.text,
+    },
+    chipTextActive: {
+      color: colors.accentText,
+    },
+    helper: {
+      color: colors.muted,
+      fontSize: 12,
+    },
+    button: {
+      alignItems: 'center',
+      paddingVertical: 10,
+      borderRadius: 10,
+    },
+    primary: {
+      backgroundColor: colors.accent,
+    },
+    buttonText: {
+      color: colors.accentText,
+      fontWeight: '800',
+    },
+  });

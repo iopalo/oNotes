@@ -8,10 +8,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import ReminderScheduler from './ReminderScheduler';
 
-export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
+export default function NoteForm({ onSubmit, onCancelEdit, initialNote, colors }) {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [reminders, setReminders] = useState([]);
@@ -20,8 +19,8 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
   const [todoDraft, setTodoDraft] = useState('');
   const [folder, setFolder] = useState('General');
   const [size, setSize] = useState('m');
-  const [todos, setTodos] = useState([]);
-  const [todoDraft, setTodoDraft] = useState('');
+
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const isEditing = useMemo(() => Boolean(initialNote), [initialNote]);
 
@@ -34,7 +33,6 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
       setTodos(initialNote.todos || []);
       setFolder(initialNote.folder || 'General');
       setSize(initialNote.size || 'm');
-      setTodos(initialNote.todos || []);
     } else {
       setTitle('');
       setBody('');
@@ -43,7 +41,6 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
       setTodos([]);
       setFolder('General');
       setSize('m');
-      setTodos([]);
     }
   }, [initialNote]);
 
@@ -58,8 +55,6 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
       folder,
       size,
       createdAt: initialNote?.createdAt,
-      reminders,
-      todos,
     });
     if (!isEditing) {
       setTitle('');
@@ -89,6 +84,7 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
         <TextInput
           style={styles.input}
           placeholder="Título"
+          placeholderTextColor={colors.muted}
           value={title}
           onChangeText={setTitle}
           autoCapitalize="sentences"
@@ -96,6 +92,7 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
         <TextInput
           style={[styles.input, styles.multiline]}
           placeholder="Contenido"
+          placeholderTextColor={colors.muted}
           value={body}
           onChangeText={setBody}
           multiline
@@ -109,6 +106,7 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
             <TextInput
               style={styles.input}
               placeholder="Ej: Trabajo, Casa, Ideas"
+              placeholderTextColor={colors.muted}
               value={folder}
               onChangeText={setFolder}
             />
@@ -146,6 +144,7 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
             <TextInput
               style={[styles.input, styles.todoInput]}
               placeholder="Nueva tarea"
+              placeholderTextColor={colors.muted}
               value={todoDraft}
               onChangeText={setTodoDraft}
               onSubmitEditing={handleAddTodo}
@@ -181,8 +180,7 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
           </Pressable>
         </View>
 
-        {showReminders ? <ReminderScheduler reminders={reminders} onChange={setReminders} /> : null}
-        <ReminderScheduler reminders={reminders} onChange={setReminders} />
+        {showReminders ? <ReminderScheduler reminders={reminders} onChange={setReminders} colors={colors} /> : null}
 
         <View style={styles.actions}>
           {isEditing && (
@@ -199,180 +197,186 @@ export default function NoteForm({ onSubmit, onCancelEdit, initialNote }) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginVertical: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  header: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 12,
-    color: '#111827',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  multiline: {
-    minHeight: 120,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 8,
-  },
-  metaCol: {
-    flex: 1,
-  },
-  metaLabel: {
-    fontWeight: '700',
-    color: '#0f172a',
-    marginBottom: 6,
-  },
-  sizeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: '#e5e7eb',
-  },
-  chipActive: {
-    backgroundColor: '#2563eb',
-  },
-  chipText: {
-    color: '#111827',
-    fontWeight: '700',
-  },
-  chipTextActive: {
-    color: '#fff',
-  },
-  reminderToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  todoSection: {
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    paddingTop: 12,
-    marginTop: 6,
-    gap: 8,
-  },
-  todoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  todoTitle: {
-    fontWeight: '700',
-    fontSize: 16,
-    color: '#0f172a',
-  },
-  todoAddButton: {
-    backgroundColor: '#2563eb',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  todoAddText: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '800',
-    marginTop: -2,
-  },
-  todoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  todoInput: {
-    flex: 1,
-    marginBottom: 0,
-  },
-  emptyTodo: {
-    color: '#6b7280',
-    fontSize: 14,
-  },
-  todoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#2563eb',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxMark: {
-    color: '#2563eb',
-    fontWeight: '800',
-  },
-  todoText: {
-    flex: 1,
-    color: '#111827',
-  },
-  todoDone: {
-    textDecorationLine: 'line-through',
-    color: '#6b7280',
-  },
-  todoDelete: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: '#fee2e2',
-    borderRadius: 8,
-  },
-  todoDeleteText: {
-    color: '#b91c1c',
-    fontWeight: '700',
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 12,
-    gap: 8,
-  },
-  button: {
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    minWidth: 120,
-    alignItems: 'center',
-  },
-  primary: {
-    backgroundColor: '#2563eb',
-  },
-  secondary: {
-    backgroundColor: '#e5e7eb',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '700',
-  },
-  secondaryText: {
-    color: '#111827',
-  },
-});
+const makeStyles = (colors) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: 16,
+      marginVertical: 12,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.08,
+      shadowRadius: 3,
+      elevation: 2,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    header: {
+      fontSize: 18,
+      fontWeight: '700',
+      marginBottom: 12,
+      color: colors.text,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 16,
+      marginBottom: 10,
+      color: colors.text,
+      backgroundColor: colors.card,
+    },
+    multiline: {
+      minHeight: 120,
+      textAlignVertical: 'top',
+    },
+    metaRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 8,
+    },
+    metaCol: {
+      flex: 1,
+    },
+    metaLabel: {
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 6,
+    },
+    sizeRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    chip: {
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      borderRadius: 10,
+      backgroundColor: colors.chip,
+    },
+    chipActive: {
+      backgroundColor: colors.accent,
+    },
+    chipText: {
+      color: colors.chipText,
+      fontWeight: '700',
+    },
+    chipTextActive: {
+      color: colors.chipActiveText,
+    },
+    reminderToggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 8,
+    },
+    todoSection: {
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingTop: 12,
+      marginTop: 6,
+      gap: 8,
+    },
+    todoHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    todoTitle: {
+      fontWeight: '700',
+      fontSize: 16,
+      color: colors.text,
+    },
+    todoAddButton: {
+      backgroundColor: colors.accent,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    todoAddText: {
+      color: colors.accentText,
+      fontSize: 20,
+      fontWeight: '800',
+      marginTop: -2,
+    },
+    todoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    todoInput: {
+      flex: 1,
+      marginBottom: 0,
+    },
+    emptyTodo: {
+      color: colors.muted,
+      fontSize: 14,
+    },
+    todoItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    checkbox: {
+      width: 22,
+      height: 22,
+      borderRadius: 6,
+      borderWidth: 2,
+      borderColor: colors.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkboxMark: {
+      color: colors.accent,
+      fontWeight: '800',
+    },
+    todoText: {
+      flex: 1,
+      color: colors.text,
+    },
+    todoDone: {
+      textDecorationLine: 'line-through',
+      color: colors.muted,
+    },
+    todoDelete: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      backgroundColor: colors.dangerBg,
+      borderRadius: 8,
+    },
+    todoDeleteText: {
+      color: colors.dangerText,
+      fontWeight: '700',
+    },
+    actions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      marginTop: 12,
+      gap: 8,
+    },
+    button: {
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      minWidth: 120,
+      alignItems: 'center',
+    },
+    primary: {
+      backgroundColor: colors.accent,
+    },
+    secondary: {
+      backgroundColor: colors.chip,
+    },
+    buttonText: {
+      color: colors.accentText,
+      fontWeight: '700',
+    },
+    secondaryText: {
+      color: colors.text,
+    },
+  });

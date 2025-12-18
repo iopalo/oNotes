@@ -12,11 +12,13 @@ const OPTIONS = [
   { key: 'custom', label: 'Otra', offset: null },
 ];
 
-export default function ReminderScheduler({ reminders = [], onChange }) {
+export default function ReminderScheduler({ reminders = [], onChange, colors }) {
   const [pickerMode, setPickerMode] = useState(null);
   const [eventDate, setEventDate] = useState(() => new Date(Date.now() + 24 * 60 * 60 * 1000));
   const [customReminder, setCustomReminder] = useState(() => new Date(Date.now() + 2 * 60 * 60 * 1000));
   const [selectedOffsets, setSelectedOffsets] = useState(new Set(['event']));
+
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const sortedReminders = useMemo(
     () => [...(reminders || [])].sort((a, b) => a.timestamp - b.timestamp),
@@ -166,90 +168,91 @@ export default function ReminderScheduler({ reminders = [], onChange }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    marginTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#e6e6e6',
-    paddingTop: 12,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  label: {
-    fontWeight: '600',
-    fontSize: 16,
-    color: '#1f2937',
-  },
-  addButton: {
-    backgroundColor: '#2563eb',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  empty: {
-    color: '#6b7280',
-    marginTop: 8,
-    fontSize: 14,
-  },
-  selectedDate: {
-    marginTop: 8,
-    color: '#1f2937',
-    fontWeight: '600',
-  },
-  optionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
-  },
-  optionChip: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: '#f9fafb',
-  },
-  optionChipActive: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
-  },
-  optionText: {
-    color: '#111827',
-    fontWeight: '600',
-  },
-  optionTextActive: {
-    color: '#fff',
-  },
-  generateButton: {
-    marginTop: 10,
-  },
-  reminderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  reminderText: {
-    flex: 1,
-    color: '#111827',
-  },
-  deleteButton: {
-    marginLeft: 12,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: '#ef4444',
-    borderRadius: 8,
-  },
-  deleteButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-});
+const makeStyles = (colors) =>
+  StyleSheet.create({
+    container: {
+      marginTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingTop: 12,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    label: {
+      fontWeight: '600',
+      fontSize: 16,
+      color: colors.text,
+    },
+    addButton: {
+      backgroundColor: colors.accent,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 8,
+    },
+    addButtonText: {
+      color: colors.accentText,
+      fontWeight: '600',
+    },
+    empty: {
+      color: colors.muted,
+      marginTop: 8,
+      fontSize: 14,
+    },
+    selectedDate: {
+      marginTop: 8,
+      color: colors.secondaryText,
+      fontWeight: '600',
+    },
+    optionsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 8,
+    },
+    optionChip: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 20,
+      backgroundColor: colors.chip,
+    },
+    optionChipActive: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    optionText: {
+      color: colors.text,
+      fontWeight: '600',
+    },
+    optionTextActive: {
+      color: colors.accentText,
+    },
+    generateButton: {
+      marginTop: 10,
+    },
+    reminderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 6,
+    },
+    reminderText: {
+      flex: 1,
+      color: colors.text,
+    },
+    deleteButton: {
+      marginLeft: 12,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      backgroundColor: colors.dangerBg,
+      borderRadius: 8,
+    },
+    deleteButtonText: {
+      color: colors.dangerText,
+      fontWeight: '600',
+    },
+  });

@@ -1,12 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import { SafeAreaView, StatusBar, StyleSheet, Text, View, Pressable, FlatList } from 'react-native';
+import { SafeAreaView, StatusBar, StyleSheet, Text, View, Pressable, FlatList, Switch } from 'react-native';
 import { NotesProvider, useNotes } from './src/state/NotesContext';
+import { ThemeProvider, useThemeMode } from './src/state/ThemeContext';
 import NoteForm from './src/components/NoteForm';
 import NotesList from './src/components/NotesList';
 import StandaloneReminderForm from './src/components/StandaloneReminderForm';
 import { useReminderNotifications } from './src/hooks/useReminderNotifications';
 
-function AlertsPanel({ alerts, onDismiss, onClear }) {
+function AlertsPanel({ alerts, onDismiss, onClear, styles }) {
   if (!alerts.length) return null;
   return (
     <View style={styles.alertsContainer}>
@@ -31,7 +32,7 @@ function AlertsPanel({ alerts, onDismiss, onClear }) {
   );
 }
 
-function NotesScreen({ onShowComposer }) {
+function NotesScreen({ onShowComposer, styles, colors }) {
   const { notes, reminders, hydrated, addNote, updateNote, deleteNote, toggleTodo } = useNotes();
   const [editingNote, setEditingNote] = useState(null);
   const [showComposer, setShowComposer] = useState(false);
@@ -68,7 +69,6 @@ function NotesScreen({ onShowComposer }) {
       : (a, b) => (a.createdAt || 0) - (b.createdAt || 0);
     return filtered.slice().sort(sorter);
   }, [notes, sortMode, folderFilter]);
-  const memoizedNotes = useMemo(() => notes, [notes]);
 
   return (
     <View style={styles.tabContent}>
@@ -89,14 +89,14 @@ function NotesScreen({ onShowComposer }) {
                   setEditingNote(null);
                   setShowComposer(false);
                 }}
+                colors={colors}
               />
             ) : null}
 
-            <AlertsPanel alerts={alerts} onDismiss={dismissAlert} onClear={clearAlerts} />
+            <AlertsPanel alerts={alerts} onDismiss={dismissAlert} onClear={clearAlerts} styles={styles} />
 
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitleMain}>Notas</Text>
-              <Text style={styles.sectionTitleMain}>Notas guardadas</Text>
               <Pressable
                 accessibilityLabel="Crear nota"
                 style={styles.fabInline}
@@ -154,17 +154,13 @@ function NotesScreen({ onShowComposer }) {
           <NotesList
             note={item}
             index={index}
-          </View>
-        )}
-        renderItem={({ item }) => (
-          <NotesList
-            note={item}
             onEdit={(note) => {
               setEditingNote(note);
               setShowComposer(true);
             }}
             onDelete={deleteNote}
             onToggleTodo={toggleTodo}
+            colors={colors}
           />
         )}
         ListEmptyComponent={() => (
@@ -175,7 +171,7 @@ function NotesScreen({ onShowComposer }) {
   );
 }
 
-function RemindersScreen() {
+function RemindersScreen({ styles, colors }) {
   const { notes, reminders, addReminder, deleteReminder, updateNote } = useNotes();
   const [showComposer, setShowComposer] = useState(false);
 
@@ -233,6 +229,7 @@ function RemindersScreen() {
                   addReminder(reminder);
                   setShowComposer(false);
                 }}
+                colors={colors}
               />
             ) : null}
           </View>
@@ -263,7 +260,7 @@ function RemindersScreen() {
   );
 }
 
-function TabBar({ activeTab, onChange }) {
+function TabBar({ activeTab, onChange, styles }) {
   return (
     <View style={styles.tabBar}>
       {[
@@ -282,18 +279,62 @@ function TabBar({ activeTab, onChange }) {
   );
 }
 
+function SettingsDrawer({ visible, onClose, onToggleTheme, theme, styles }) {
+  if (!visible) return null;
+  return (
+    <Pressable style={styles.drawerOverlay} onPress={onClose}>
+      <Pressable style={styles.drawer} onPress={(e) => e.stopPropagation?.()}>
+        <Text style={styles.drawerTitle}>Menú</Text>
+        <View style={styles.drawerItem}>
+          <Text style={styles.drawerLabel}>Settings</Text>
+        </View>
+        <View style={styles.drawerItem}>
+          <Text style={styles.drawerLabel}>Modo oscuro</Text>
+          <Switch
+            value={theme === 'dark'}
+            onValueChange={onToggleTheme}
+            trackColor={{ false: '#cbd5e1', true: '#2563eb' }}
+            thumbColor={theme === 'dark' ? '#0b1221' : '#ffffff'}
+          />
+        </View>
+      </Pressable>
+    </Pressable>
+  );
+}
+
 function MainApp() {
   const [activeTab, setActiveTab] = useState('notes');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const { colors, theme, toggleTheme } = useThemeMode();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
-        <Text style={styles.title}>oNotes</Text>
-        <Text style={styles.subtitle}>Notas con recordatorios locales para Android</Text>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
+      <View style={styles.headerRow}>
+        <Pressable style={styles.menuButton} onPress={() => setDrawerOpen(true)}>
+          <View style={styles.menuLine} />
+          <View style={styles.menuLine} />
+          <View style={styles.menuLine} />
+        </Pressable>
+        <View style={styles.headerTextWrap}>
+          <Text style={styles.title}>oNotes</Text>
+          <Text style={styles.subtitle}>Notas con recordatorios locales para Android</Text>
+        </View>
       </View>
-      <TabBar activeTab={activeTab} onChange={setActiveTab} />
-      {activeTab === 'notes' ? <NotesScreen /> : <RemindersScreen />}
+      <TabBar activeTab={activeTab} onChange={setActiveTab} styles={styles} />
+      {activeTab === 'notes' ? (
+        <NotesScreen styles={styles} colors={colors} />
+      ) : (
+        <RemindersScreen styles={styles} colors={colors} />
+      )}
+      <SettingsDrawer
+        visible={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onToggleTheme={toggleTheme}
+        theme={theme}
+        styles={styles}
+      />
     </SafeAreaView>
   );
 }
@@ -301,229 +342,276 @@ function MainApp() {
 export default function App() {
   return (
     <NotesProvider>
-      <MainApp />
+      <ThemeProvider>
+        <MainApp />
+      </ThemeProvider>
     </NotesProvider>
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-  },
-  header: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#4b5563',
-    marginTop: 2,
-  },
-  tabBar: {
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    marginTop: 12,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 12,
-    padding: 4,
-  },
-  tabItem: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 10,
-  },
-  tabItemActive: {
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  tabText: {
-    color: '#4b5563',
-    fontWeight: '700',
-  },
-  tabTextActive: {
-    color: '#111827',
-  },
-  tabContent: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-  },
-  listContent: {
-    paddingBottom: 32,
-    gap: 8,
-  },
-  masonryRow: {
-    justifyContent: 'space-between',
-  },
-  listHeaderGap: {
-    gap: 12,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  sectionTitleMain: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  filterRow: {
-    gap: 12,
-  },
-  filterGroup: {
-    gap: 6,
-  },
-  filterLabel: {
-    fontWeight: '700',
-    color: '#111827',
-  },
-  filterChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: '#e5e7eb',
-  },
-  chipActive: {
-    backgroundColor: '#2563eb',
-  },
-  chipText: {
-    color: '#111827',
-    fontWeight: '700',
-  },
-  chipTextActive: {
-    color: '#fff',
-  },
-  emptyMessage: {
-    color: '#6b7280',
-    fontSize: 14,
-    marginTop: 8,
-  },
-  alertsContainer: {
-    backgroundColor: '#eef2ff',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-  },
-  alertsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#312e81',
-  },
-  clearText: {
-    color: '#4338ca',
-    fontWeight: '700',
-  },
-  alert: {
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#c7d2fe',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  alertTitle: {
-    fontWeight: '700',
-    color: '#1f2937',
-  },
-  alertTime: {
-    color: '#4b5563',
-  },
-  dismissText: {
-    color: '#4338ca',
-    fontWeight: '700',
-  },
-  reminderCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  reminderTime: {
-    color: '#4b5563',
-    marginTop: 4,
-  },
-  reminderNote: {
-    color: '#6b7280',
-    marginTop: 4,
-  },
-  fabInline: {
-    backgroundColor: '#2563eb',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fabInlineText: {
-    color: '#fff',
-    fontSize: 22,
-    fontWeight: '800',
-    marginTop: -2,
-  },
-  overlay: {
-    position: 'absolute',
-    inset: 0,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  overlayCard: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 16,
-    width: '100%',
-    maxHeight: '90%',
-  },
-  overlayTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    marginBottom: 8,
-    color: '#0f172a',
-  },
-  actionButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  danger: {
-    backgroundColor: '#fee2e2',
-  },
-  actionText: {
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  dangerText: {
-    color: '#b91c1c',
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+    },
+    headerRow: {
+      paddingHorizontal: 16,
+      paddingTop: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    headerTextWrap: {
+      flex: 1,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: colors.secondaryText,
+      marginTop: 2,
+    },
+    menuButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 4,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    menuLine: {
+      width: 24,
+      height: 3,
+      borderRadius: 12,
+      backgroundColor: colors.text,
+    },
+    tabBar: {
+      flexDirection: 'row',
+      marginHorizontal: 16,
+      marginTop: 12,
+      backgroundColor: colors.tabBg,
+      borderRadius: 12,
+      padding: 4,
+    },
+    tabItem: {
+      flex: 1,
+      paddingVertical: 10,
+      alignItems: 'center',
+      borderRadius: 10,
+    },
+    tabItemActive: {
+      backgroundColor: colors.tabActiveBg,
+      shadowColor: '#000',
+      shadowOpacity: 0.08,
+      shadowRadius: 3,
+      elevation: 2,
+    },
+    tabText: {
+      color: colors.tabText,
+      fontWeight: '700',
+    },
+    tabTextActive: {
+      color: colors.text,
+    },
+    tabContent: {
+      flex: 1,
+      paddingHorizontal: 16,
+      paddingTop: 10,
+    },
+    listContent: {
+      paddingBottom: 32,
+      gap: 8,
+    },
+    masonryRow: {
+      justifyContent: 'space-between',
+    },
+    listHeaderGap: {
+      gap: 12,
+    },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    },
+    sectionTitleMain: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    filterRow: {
+      gap: 12,
+    },
+    filterGroup: {
+      gap: 6,
+    },
+    filterLabel: {
+      fontWeight: '700',
+      color: colors.text,
+    },
+    filterChips: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    chip: {
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      borderRadius: 10,
+      backgroundColor: colors.chip,
+    },
+    chipActive: {
+      backgroundColor: colors.accent,
+    },
+    chipText: {
+      color: colors.chipText,
+      fontWeight: '700',
+    },
+    chipTextActive: {
+      color: colors.chipActiveText,
+    },
+    emptyMessage: {
+      color: colors.muted,
+      fontSize: 14,
+      marginTop: 8,
+    },
+    alertsContainer: {
+      backgroundColor: colors.alertBg,
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 12,
+    },
+    alertsHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.alertTitle,
+    },
+    clearText: {
+      color: colors.accent,
+      fontWeight: '700',
+    },
+    alert: {
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    alertTitle: {
+      fontWeight: '700',
+      color: colors.text,
+    },
+    alertTime: {
+      color: colors.alertTime,
+    },
+    dismissText: {
+      color: colors.accent,
+      fontWeight: '700',
+    },
+    reminderCard: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: 14,
+      marginBottom: 12,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.08,
+      shadowRadius: 3,
+      elevation: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    cardTitle: {
+      color: colors.text,
+      fontWeight: '800',
+      fontSize: 16,
+    },
+    reminderTime: {
+      color: colors.secondaryText,
+      marginTop: 4,
+    },
+    reminderNote: {
+      color: colors.muted,
+      marginTop: 4,
+    },
+    fabInline: {
+      backgroundColor: colors.accent,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    fabInlineText: {
+      color: colors.accentText,
+      fontSize: 22,
+      fontWeight: '800',
+      marginTop: -2,
+    },
+    actionButton: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 8,
+    },
+    danger: {
+      backgroundColor: colors.dangerBg,
+    },
+    actionText: {
+      fontWeight: '600',
+      color: colors.text,
+    },
+    dangerText: {
+      color: colors.dangerText,
+    },
+    drawerOverlay: {
+      position: 'absolute',
+      inset: 0,
+      backgroundColor: colors.overlayBackdrop,
+      justifyContent: 'flex-start',
+      alignItems: 'flex-start',
+    },
+    drawer: {
+      width: '70%',
+      maxWidth: 320,
+      backgroundColor: colors.card,
+      padding: 16,
+      borderTopRightRadius: 16,
+      borderBottomRightRadius: 16,
+      gap: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    drawerTitle: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    drawerItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    drawerLabel: {
+      fontSize: 16,
+      color: colors.text,
+      fontWeight: '600',
+    },
+  });

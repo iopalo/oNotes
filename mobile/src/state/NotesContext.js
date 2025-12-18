@@ -89,19 +89,6 @@ export function NotesProvider({ children }) {
         } else if (legacyNotes) {
           const normalizedNotes = JSON.parse(legacyNotes || '[]').map(normalizeNote);
           dispatch({ type: 'HYDRATE', payload: { notes: normalizedNotes, reminders: [] } });
-          if (Array.isArray(parsed)) {
-            dispatch({ type: 'HYDRATE', payload: { notes: parsed, reminders: [] } });
-          } else {
-            dispatch({
-              type: 'HYDRATE',
-              payload: {
-                notes: parsed.notes || [],
-                reminders: parsed.reminders || [],
-              },
-            });
-          }
-        } else if (legacyNotes) {
-          dispatch({ type: 'HYDRATE', payload: { notes: JSON.parse(legacyNotes), reminders: [] } });
         }
       } catch (error) {
         console.warn('No se pudieron cargar las notas almacenadas', error);
