@@ -1,4 +1,5 @@
 import 'react-native-gesture-handler';
+import 'react-native-reanimated';
 import React, { useMemo, useState } from 'react';
 import { SafeAreaView, StatusBar, StyleSheet, Text, View, Pressable, FlatList, Switch } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
