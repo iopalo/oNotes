@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useRef } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { PinchGestureHandler, State } from 'react-native-gesture-handler';
 
 const formatDate = (timestamp) => new Date(timestamp).toLocaleDateString();
 
@@ -11,8 +12,20 @@ const sizeHeights = {
   l: 260,
 };
 
-export default function NotesList({ note, onEdit, onDelete, onToggleTodo, index, colors }) {
+export default function NotesList({
+  note,
+  onEdit,
+  onDelete,
+  onToggleTodo,
+  onResize,
+  onDrag,
+  customMode = false,
+  isActive = false,
+  index,
+  colors,
+}) {
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const scale = useRef(new Animated.Value(1)).current;
 
   const backgroundColor = useMemo(() => {
     const value = (note.folder || '') + note.id + index;
@@ -22,55 +35,84 @@ export default function NotesList({ note, onEdit, onDelete, onToggleTodo, index,
 
   const sizeHeight = sizeHeights[note.size] || sizeHeights.m;
 
+  const handlePinchEvent = Animated.event([{ nativeEvent: { scale } }], { useNativeDriver: true });
+
+  const handlePinchStateChange = (event) => {
+    if (!onResize) return;
+    if (event.nativeEvent.state !== State.END) return;
+    const gestureScale = event.nativeEvent.scale;
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
+    if (gestureScale > 1.12) {
+      onResize(note.id, 'increase');
+    } else if (gestureScale < 0.9) {
+      onResize(note.id, 'decrease');
+    }
+  };
+
   return (
-    <Pressable style={[styles.card, { backgroundColor, minHeight: sizeHeight }]} onPress={() => onEdit(note)}>
-      <View style={styles.cardHeader}>
-        <View style={styles.folderPill}>
-          <Text style={styles.folderText}>{note.folder || 'General'}</Text>
-        </View>
-        <Pressable onPress={() => onDelete(note.id)} style={styles.iconButton} accessibilityLabel="Eliminar nota">
-          <Text style={styles.iconText}>🗑</Text>
-        </Pressable>
-      </View>
-
-      <Text style={styles.cardTitle}>{note.title || 'Sin título'}</Text>
-      {note.body ? <Text style={styles.body}>{note.body}</Text> : null}
-
-      {note.todos?.length ? (
-        <View style={styles.todos}>
-          {note.todos.map((todo) => (
-            <Pressable
-              key={todo.id}
-              style={styles.todoRow}
-              onPress={() => onToggleTodo(note.id, todo.id)}
-            >
-              <Text style={[styles.checkboxMark, todo.done && styles.checkboxDone]}>{todo.done ? '☑' : '☐'}</Text>
-              <Text style={[styles.todoText, todo.done && styles.todoDone]}>{todo.text}</Text>
+    <PinchGestureHandler
+      enabled={Boolean(customMode && onResize)}
+      onGestureEvent={handlePinchEvent}
+      onHandlerStateChange={handlePinchStateChange}
+    >
+      <Animated.View
+        style={[
+          styles.card,
+          { backgroundColor, minHeight: sizeHeight, transform: [{ scale }] },
+          customMode && isActive ? styles.dragging : null,
+        ]}
+      >
+        <Pressable
+          style={styles.cardContent}
+          onPress={() => onEdit(note)}
+          onLongPress={customMode && onDrag ? onDrag : undefined}
+          delayLongPress={120}
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.folderPill}>
+              <Text style={styles.folderText}>{note.folder || 'General'}</Text>
+            </View>
+            <Pressable onPress={() => onDelete(note.id)} style={styles.iconButton} accessibilityLabel="Eliminar nota">
+              <Text style={styles.iconText}>🗑</Text>
             </Pressable>
-          ))}
-        </View>
-      ) : null}
+          </View>
 
-      {note.reminders?.length ? (
-        <View style={styles.reminders}>
-          {note.reminders
-            .slice()
-            .sort((a, b) => a.timestamp - b.timestamp)
-            .map((reminder) => (
-              <Text key={reminder.id} style={styles.reminderItem}>
-                🔔 {formatDate(reminder.timestamp)}
-              </Text>
-            ))}
-        </View>
-      ) : null}
+          <Text style={styles.cardTitle}>{note.title || 'Sin título'}</Text>
+          {note.body ? <Text style={styles.body}>{note.body}</Text> : null}
 
-      <View style={styles.footerRow}>
-        <Text style={styles.dateText}>{formatDate(note.createdAt || Date.now())}</Text>
-        <Pressable onPress={() => onEdit(note)} style={styles.iconButton} accessibilityLabel="Editar nota">
-          <Text style={styles.iconText}>✏️</Text>
+          {note.todos?.length ? (
+            <View style={styles.todos}>
+              {note.todos.map((todo) => (
+                <Pressable key={todo.id} style={styles.todoRow} onPress={() => onToggleTodo(note.id, todo.id)}>
+                  <Text style={[styles.checkboxMark, todo.done && styles.checkboxDone]}>{todo.done ? '☑' : '☐'}</Text>
+                  <Text style={[styles.todoText, todo.done && styles.todoDone]}>{todo.text}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+
+          {note.reminders?.length ? (
+            <View style={styles.reminders}>
+              {note.reminders
+                .slice()
+                .sort((a, b) => a.timestamp - b.timestamp)
+                .map((reminder) => (
+                  <Text key={reminder.id} style={styles.reminderItem}>
+                    🔔 {formatDate(reminder.timestamp)}
+                  </Text>
+                ))}
+            </View>
+          ) : null}
+
+          <View style={styles.footerRow}>
+            <Text style={styles.dateText}>{formatDate(note.createdAt || Date.now())}</Text>
+            <Pressable onPress={() => onEdit(note)} style={styles.iconButton} accessibilityLabel="Editar nota">
+              <Text style={styles.iconText}>✏️</Text>
+            </Pressable>
+          </View>
         </Pressable>
-      </View>
-    </Pressable>
+      </Animated.View>
+    </PinchGestureHandler>
   );
 }
 
@@ -78,7 +120,7 @@ const makeStyles = (colors) =>
   StyleSheet.create({
     card: {
       borderRadius: 16,
-      padding: 14,
+      padding: 0,
       marginBottom: 12,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
@@ -89,6 +131,11 @@ const makeStyles = (colors) =>
       marginHorizontal: 4,
       borderWidth: 1,
       borderColor: colors.border,
+      overflow: 'hidden',
+    },
+    cardContent: {
+      padding: 14,
+      flex: 1,
     },
     cardHeader: {
       flexDirection: 'row',
@@ -169,5 +216,10 @@ const makeStyles = (colors) =>
     iconText: {
       fontSize: 16,
       color: colors.text,
+    },
+    dragging: {
+      opacity: 0.92,
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
     },
   });

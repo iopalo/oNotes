@@ -7,18 +7,20 @@ const STORAGE_KEY = 'onotes.data';
 const initialState = {
   notes: [],
   reminders: [],
+  customOrder: [],
 };
 
 const normalizeNote = (note) => ({
-  id: note.id,
+  id: note.id || createId(),
   title: note.title || 'Sin título',
   body: note.body || '',
   reminders: (note.reminders || []).map((reminder) => ({
     ...reminder,
     id: reminder.id || createId(),
+    timestamp: Number(reminder.timestamp) || Date.now(),
   })),
   todos: (note.todos || []).map((todo) => ({ ...todo, id: todo.id || createId() })),
-  createdAt: note.createdAt || Date.now(),
+  createdAt: Number(note.createdAt) || Date.now(),
   folder: note.folder || 'General',
   size: note.size || 'm',
 });
@@ -51,6 +53,8 @@ function reducer(state, action) {
       };
     case 'DELETE_REMINDER':
       return { ...state, reminders: state.reminders.filter((reminder) => reminder.id !== action.payload) };
+    case 'SET_CUSTOM_ORDER':
+      return { ...state, customOrder: action.payload };
     default:
       return state;
   }
@@ -81,14 +85,20 @@ export function NotesProvider({ children }) {
           const parsedNotes = Array.isArray(parsed) ? parsed : parsed.notes || [];
           const parsedReminders = Array.isArray(parsed) ? [] : parsed.reminders || [];
           const normalizedNotes = (parsedNotes || []).map(normalizeNote);
+          const parsedOrder = Array.isArray(parsed.customOrder)
+            ? parsed.customOrder
+            : normalizedNotes.map((note) => note.id);
 
           dispatch({
             type: 'HYDRATE',
-            payload: { notes: normalizedNotes, reminders: parsedReminders },
+            payload: { notes: normalizedNotes, reminders: parsedReminders, customOrder: parsedOrder },
           });
         } else if (legacyNotes) {
           const normalizedNotes = JSON.parse(legacyNotes || '[]').map(normalizeNote);
-          dispatch({ type: 'HYDRATE', payload: { notes: normalizedNotes, reminders: [] } });
+          dispatch({
+            type: 'HYDRATE',
+            payload: { notes: normalizedNotes, reminders: [], customOrder: normalizedNotes.map((note) => note.id) },
+          });
         }
       } catch (error) {
         console.warn('No se pudieron cargar las notas almacenadas', error);
@@ -110,23 +120,16 @@ export function NotesProvider({ children }) {
       addNote: ({ title, body, reminders, todos, folder, size, createdAt }) => {
         const note = normalizeNote({
           id: createId(),
-          title: title.trim() || 'Sin título',
-          body: body.trim(),
+          title: title?.trim() || 'Sin título',
+          body: body?.trim() || '',
           reminders: reminders || [],
           todos: todos || [],
           folder: folder?.trim() || 'General',
           size: size || 'm',
           createdAt: createdAt || Date.now(),
         });
-      addNote: ({ title, body, reminders, todos }) => {
-        const note = {
-          id: createId(),
-          title: title.trim() || 'Sin título',
-          body: body.trim(),
-          reminders: (reminders || []).map((reminder) => ({ ...reminder, id: reminder.id || createId() })),
-          todos: (todos || []).map((todo) => ({ ...todo, id: todo.id || createId() })),
-        };
         dispatch({ type: 'ADD_NOTE', payload: note });
+        dispatch({ type: 'SET_CUSTOM_ORDER', payload: [...state.customOrder, note.id] });
         return note.id;
       },
       updateNote: (note) =>
@@ -136,16 +139,11 @@ export function NotesProvider({ children }) {
             ...note,
             createdAt: note.createdAt || Date.now(),
           }),
-          payload: {
-            ...note,
-            reminders: (note.reminders || []).map((reminder) => ({
-              ...reminder,
-              id: reminder.id || createId(),
-            })),
-            todos: (note.todos || []).map((todo) => ({ ...todo, id: todo.id || createId() })),
-          },
         }),
-      deleteNote: (noteId) => dispatch({ type: 'DELETE_NOTE', payload: noteId }),
+      deleteNote: (noteId) => {
+        dispatch({ type: 'DELETE_NOTE', payload: noteId });
+        dispatch({ type: 'SET_CUSTOM_ORDER', payload: state.customOrder.filter((id) => id !== noteId) });
+      },
       toggleTodo: (noteId, todoId) => {
         const note = state.notes.find((n) => n.id === noteId);
         if (!note) return;
@@ -174,18 +172,20 @@ export function NotesProvider({ children }) {
           payload: { ...reminder, id: reminder.id || createId() },
         }),
       deleteReminder: (reminderId) => dispatch({ type: 'DELETE_REMINDER', payload: reminderId }),
+      setCustomOrder: (order) => dispatch({ type: 'SET_CUSTOM_ORDER', payload: order }),
     }),
-    [state.notes, state.reminders]
+    [state.notes, state.reminders, state.customOrder]
   );
 
   const value = useMemo(
     () => ({
       notes: state.notes,
       reminders: state.reminders,
+      customOrder: state.customOrder,
       hydrated,
       ...actions,
     }),
-    [state.notes, state.reminders, hydrated, actions]
+    [state.notes, state.reminders, state.customOrder, hydrated, actions]
   );
 
   return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;

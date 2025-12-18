@@ -1,6 +1,9 @@
-node_modules
-dist
+node_modules/
+frontend/node_modules/
+mobile/node_modules/
+.expo/
+.expo-shared/
+dist/
+build/
 npm-debug.log*
 .DS_Store
-.expo
-.expo-shared
