@@ -118,6 +118,14 @@ export function NotesProvider({ children }) {
           size: size || 'm',
           createdAt: createdAt || Date.now(),
         });
+      addNote: ({ title, body, reminders, todos }) => {
+        const note = {
+          id: createId(),
+          title: title.trim() || 'Sin título',
+          body: body.trim(),
+          reminders: (reminders || []).map((reminder) => ({ ...reminder, id: reminder.id || createId() })),
+          todos: (todos || []).map((todo) => ({ ...todo, id: todo.id || createId() })),
+        };
         dispatch({ type: 'ADD_NOTE', payload: note });
         return note.id;
       },
@@ -128,6 +136,14 @@ export function NotesProvider({ children }) {
             ...note,
             createdAt: note.createdAt || Date.now(),
           }),
+          payload: {
+            ...note,
+            reminders: (note.reminders || []).map((reminder) => ({
+              ...reminder,
+              id: reminder.id || createId(),
+            })),
+            todos: (note.todos || []).map((todo) => ({ ...todo, id: todo.id || createId() })),
+          },
         }),
       deleteNote: (noteId) => dispatch({ type: 'DELETE_NOTE', payload: noteId }),
       toggleTodo: (noteId, todoId) => {
