@@ -1,5 +1,9 @@
+import 'react-native-gesture-handler';
+import 'react-native-reanimated';
 import React, { useMemo, useState } from 'react';
 import { SafeAreaView, StatusBar, StyleSheet, Text, View, Pressable, FlatList, Switch } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import DraggableFlatList from 'react-native-draggable-flatlist';
 import { NotesProvider, useNotes } from './src/state/NotesContext';
 import { ThemeProvider, useThemeMode } from './src/state/ThemeContext';
 import NoteForm from './src/components/NoteForm';
@@ -33,7 +37,8 @@ function AlertsPanel({ alerts, onDismiss, onClear, styles }) {
 }
 
 function NotesScreen({ onShowComposer, styles, colors }) {
-  const { notes, reminders, hydrated, addNote, updateNote, deleteNote, toggleTodo } = useNotes();
+  const { notes, reminders, hydrated, addNote, updateNote, deleteNote, toggleTodo, customOrder, setCustomOrder } =
+    useNotes();
   const [editingNote, setEditingNote] = useState(null);
   const [showComposer, setShowComposer] = useState(false);
   const [sortMode, setSortMode] = useState('created');
@@ -61,112 +66,203 @@ function NotesScreen({ onShowComposer, styles, colors }) {
     return ['all', ...Array.from(set)];
   }, [notes]);
 
+  const normalizedNotes = useMemo(
+    () => notes.map((n) => ({ ...n, createdAt: n.createdAt || Date.now() })),
+    [notes]
+  );
+
+  const filteredNotes = useMemo(
+    () =>
+      folderFilter === 'all'
+        ? normalizedNotes
+        : normalizedNotes.filter((n) => (n.folder || 'General') === folderFilter),
+    [folderFilter, normalizedNotes]
+  );
+
   const memoizedNotes = useMemo(() => {
-    const base = notes.map((n) => ({ ...n, createdAt: n.createdAt || Date.now() }));
-    const filtered = folderFilter === 'all' ? base : base.filter((n) => (n.folder || 'General') === folderFilter);
-    const sorter = sortMode === 'alpha'
-      ? (a, b) => (a.title || '').localeCompare(b.title || '')
-      : (a, b) => (a.createdAt || 0) - (b.createdAt || 0);
-    return filtered.slice().sort(sorter);
-  }, [notes, sortMode, folderFilter]);
+    if (sortMode === 'alpha' || sortMode === 'created') {
+      const sorter =
+        sortMode === 'alpha'
+          ? (a, b) => (a.title || '').localeCompare(b.title || '')
+          : (a, b) => (a.createdAt || 0) - (b.createdAt || 0);
+      return filteredNotes.slice().sort(sorter);
+    }
+
+    const map = new Map(filteredNotes.map((note) => [note.id, note]));
+    const baseOrder = (customOrder && customOrder.length ? customOrder : normalizedNotes.map((n) => n.id)).filter((
+      id
+    ) => map.has(id));
+    const ordered = [];
+
+    baseOrder.forEach((id) => {
+      const note = map.get(id);
+      if (!note) return;
+      ordered.push(note);
+      map.delete(id);
+    });
+
+    map.forEach((note) => ordered.push(note));
+    return ordered;
+  }, [customOrder, filteredNotes, normalizedNotes, sortMode]);
+
+  const handleCustomOrder = (orderedVisible) => {
+    const visibleIds = orderedVisible.map((item) => item.id);
+    const replacementQueue = [...visibleIds];
+    const visibleSet = new Set(visibleIds);
+
+    const merged = (customOrder.length ? customOrder : normalizedNotes.map((note) => note.id)).map((id) =>
+      visibleSet.has(id) ? replacementQueue.shift() : id
+    );
+
+    normalizedNotes.forEach((note) => {
+      if (!merged.includes(note.id)) merged.push(note.id);
+    });
+
+    setCustomOrder(merged);
+  };
+
+  const handleResize = (noteId, direction) => {
+    const note = notes.find((n) => n.id === noteId);
+    if (!note) return;
+    const sizes = ['s', 'm', 'l'];
+    const currentIndex = sizes.indexOf(note.size || 'm');
+    const nextIndex = direction === 'increase' ? Math.min(currentIndex + 1, sizes.length - 1) : Math.max(currentIndex - 1, 0);
+    if (currentIndex === nextIndex) return;
+    updateNote({ ...note, size: sizes[nextIndex] });
+  };
+
+  const renderHeader = () => (
+    <View style={styles.listHeaderGap}>
+      <View style={styles.filterRow}>
+        <View style={styles.filterGroup}>
+          <Text style={styles.filterLabel}>Ordenar</Text>
+          <View style={styles.filterChips}>
+            {[
+              { key: 'created', label: 'Creación' },
+              { key: 'alpha', label: 'A-Z' },
+              { key: 'custom', label: 'Personalizado' },
+            ].map((opt) => (
+              <Pressable
+                key={opt.key}
+                style={[styles.chip, sortMode === opt.key && styles.chipActive]}
+                onPress={() => setSortMode(opt.key)}
+              >
+                <Text style={[styles.chipText, sortMode === opt.key && styles.chipTextActive]}>{opt.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.filterGroup}>
+          <Text style={styles.filterLabel}>Carpeta</Text>
+          <View style={styles.filterChips}>
+            {folders.map((folder) => (
+              <Pressable
+                key={folder}
+                style={[styles.chip, folderFilter === folder && styles.chipActive]}
+                onPress={() => setFolderFilter(folder)}
+              >
+                <Text style={[styles.chipText, folderFilter === folder && styles.chipTextActive]}>
+                  {folder === 'all' ? 'Todas' : folder}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      </View>
+
+      {showComposer || editingNote ? (
+        <NoteForm
+          initialNote={editingNote}
+          onSubmit={handleSubmit}
+          onCancelEdit={() => {
+            setEditingNote(null);
+            setShowComposer(false);
+          }}
+          colors={colors}
+        />
+      ) : null}
+
+      <AlertsPanel alerts={alerts} onDismiss={dismissAlert} onClear={clearAlerts} styles={styles} />
+
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitleMain}>Notas</Text>
+        <Pressable
+          accessibilityLabel="Crear nota"
+          style={styles.fabInline}
+          onPress={() => {
+            setEditingNote(null);
+            setShowComposer(true);
+            onShowComposer?.();
+          }}
+        >
+          <Text style={styles.fabInlineText}>+</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.tabContent}>
-      <FlatList
-        data={memoizedNotes}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        numColumns={2}
-        columnWrapperStyle={styles.masonryRow}
-        keyboardShouldPersistTaps="handled"
-        ListHeaderComponent={() => (
-          <View style={styles.listHeaderGap}>
-            {showComposer || editingNote ? (
-              <NoteForm
-                initialNote={editingNote}
-                onSubmit={handleSubmit}
-                onCancelEdit={() => {
-                  setEditingNote(null);
-                  setShowComposer(false);
-                }}
-                colors={colors}
-              />
-            ) : null}
-
-            <AlertsPanel alerts={alerts} onDismiss={dismissAlert} onClear={clearAlerts} styles={styles} />
-
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitleMain}>Notas</Text>
-              <Pressable
-                accessibilityLabel="Crear nota"
-                style={styles.fabInline}
-                onPress={() => {
-                  setEditingNote(null);
-                  setShowComposer(true);
-                  onShowComposer?.();
-                }}
-              >
-                <Text style={styles.fabInlineText}>+</Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.filterRow}>
-              <View style={styles.filterGroup}>
-                <Text style={styles.filterLabel}>Ordenar por</Text>
-                <View style={styles.filterChips}>
-                  {[
-                    { key: 'created', label: 'Creación' },
-                    { key: 'alpha', label: 'A-Z' },
-                  ].map((opt) => (
-                    <Pressable
-                      key={opt.key}
-                      style={[styles.chip, sortMode === opt.key && styles.chipActive]}
-                      onPress={() => setSortMode(opt.key)}
-                    >
-                      <Text style={[styles.chipText, sortMode === opt.key && styles.chipTextActive]}>
-                        {opt.label}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.filterGroup}>
-                <Text style={styles.filterLabel}>Carpeta</Text>
-                <View style={styles.filterChips}>
-                  {folders.map((folder) => (
-                    <Pressable
-                      key={folder}
-                      style={[styles.chip, folderFilter === folder && styles.chipActive]}
-                      onPress={() => setFolderFilter(folder)}
-                    >
-                      <Text style={[styles.chipText, folderFilter === folder && styles.chipTextActive]}>
-                        {folder === 'all' ? 'Todas' : folder}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-            </View>
-          </View>
-        )}
-        renderItem={({ item, index }) => (
-          <NotesList
-            note={item}
-            index={index}
-            onEdit={(note) => {
-              setEditingNote(note);
-              setShowComposer(true);
-            }}
-            onDelete={deleteNote}
-            onToggleTodo={toggleTodo}
-            colors={colors}
-          />
-        )}
-        ListEmptyComponent={() => (
-          <Text style={styles.emptyMessage}>Aún no hay notas. Crea la primera para comenzar.</Text>
-        )}
-      />
+      {sortMode === 'custom' ? (
+        <DraggableFlatList
+          data={memoizedNotes}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          numColumns={2}
+          columnWrapperStyle={styles.masonryRow}
+          keyboardShouldPersistTaps="handled"
+          ListHeaderComponent={renderHeader}
+          renderItem={({ item, index, drag, isActive }) => (
+            <NotesList
+              note={item}
+              index={index}
+              onEdit={(note) => {
+                setEditingNote(note);
+                setShowComposer(true);
+              }}
+              onDelete={deleteNote}
+              onToggleTodo={toggleTodo}
+              colors={colors}
+              onResize={handleResize}
+              onDrag={drag}
+              customMode
+              isActive={isActive}
+            />
+          )}
+          onDragEnd={({ data }) => handleCustomOrder(data)}
+          ListEmptyComponent={() => (
+            <Text style={styles.emptyMessage}>Aún no hay notas. Crea la primera para comenzar.</Text>
+          )}
+        />
+      ) : (
+        <FlatList
+          data={memoizedNotes}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          numColumns={2}
+          columnWrapperStyle={styles.masonryRow}
+          keyboardShouldPersistTaps="handled"
+          ListHeaderComponent={renderHeader}
+          renderItem={({ item, index }) => (
+            <NotesList
+              note={item}
+              index={index}
+              onEdit={(note) => {
+                setEditingNote(note);
+                setShowComposer(true);
+              }}
+              onDelete={deleteNote}
+              onToggleTodo={toggleTodo}
+              colors={colors}
+              onResize={handleResize}
+            />
+          )}
+          ListEmptyComponent={() => (
+            <Text style={styles.emptyMessage}>Aún no hay notas. Crea la primera para comenzar.</Text>
+          )}
+        />
+      )}
     </View>
   );
 }
@@ -308,26 +404,39 @@ function MainApp() {
   const { colors, theme, toggleTheme } = useThemeMode();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
+  const handleBackgroundPress = () => {
+    if (drawerOpen) setDrawerOpen(false);
+  };
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
-      <View style={styles.headerRow}>
-        <Pressable style={styles.menuButton} onPress={() => setDrawerOpen(true)}>
-          <View style={styles.menuLine} />
-          <View style={styles.menuLine} />
-          <View style={styles.menuLine} />
-        </Pressable>
-        <View style={styles.headerTextWrap}>
-          <Text style={styles.title}>oNotes</Text>
-          <Text style={styles.subtitle}>Notas con recordatorios locales para Android</Text>
+      <Pressable style={styles.appShell} onPress={handleBackgroundPress} disabled={!drawerOpen}>
+        <View style={styles.headerRow}>
+          <Pressable style={styles.menuButton} onPress={() => setDrawerOpen(true)}>
+            <View style={styles.menuLine} />
+            <View style={styles.menuLine} />
+            <View style={styles.menuLine} />
+          </Pressable>
+          <View style={styles.headerTextWrap}>
+            <Text style={styles.title}>oNotes</Text>
+            <Text style={styles.subtitle}>Notas con recordatorios locales para Android</Text>
+          </View>
         </View>
-      </View>
-      <TabBar activeTab={activeTab} onChange={setActiveTab} styles={styles} />
-      {activeTab === 'notes' ? (
-        <NotesScreen styles={styles} colors={colors} />
-      ) : (
-        <RemindersScreen styles={styles} colors={colors} />
-      )}
+        <TabBar
+          activeTab={activeTab}
+          onChange={(tab) => {
+            setActiveTab(tab);
+            setDrawerOpen(false);
+          }}
+          styles={styles}
+        />
+        {activeTab === 'notes' ? (
+          <NotesScreen styles={styles} colors={colors} />
+        ) : (
+          <RemindersScreen styles={styles} colors={colors} />
+        )}
+      </Pressable>
       <SettingsDrawer
         visible={drawerOpen}
         onClose={() => setDrawerOpen(false)}
@@ -341,17 +450,22 @@ function MainApp() {
 
 export default function App() {
   return (
-    <NotesProvider>
-      <ThemeProvider>
-        <MainApp />
-      </ThemeProvider>
-    </NotesProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NotesProvider>
+        <ThemeProvider>
+          <MainApp />
+        </ThemeProvider>
+      </NotesProvider>
+    </GestureHandlerRootView>
   );
 }
 
 const createStyles = (colors) =>
   StyleSheet.create({
     safeArea: {
+      flex: 1,
+    },
+    appShell: {
       flex: 1,
     },
     headerRow: {
@@ -446,10 +560,16 @@ const createStyles = (colors) =>
       color: colors.text,
     },
     filterRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      justifyContent: 'space-between',
       gap: 12,
     },
     filterGroup: {
       gap: 6,
+      minWidth: 160,
+      flex: 1,
     },
     filterLabel: {
       fontWeight: '700',
